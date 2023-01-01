@@ -18,35 +18,23 @@ data class Individual(
     val spouseToFamilies: List<SpouseToFamilyLink> = listOf(),
     val associations: List<Association> = listOf(),
     val changeDate: LocalDate?,
-    val notes: List<Note> = listOf(),
+    val notes: List<String> = listOf(),
     val sourceCitations: List<SourceCitation> = listOf(),
     val multimediaLinks: List<MultimediaLink> = listOf()
 )
 
 data class IndividualName(
     val name: String,
-    val type: NameType?,
-    val namePieces: NamePieces?
-)
-
-data class NamePieces(
+    val type: String?,
     val prefix: String?,
     val given: String?,
     val nickname: String?,
     val surnamePrefix: String?,
     val surname: String?,
     val suffix: String?,
-    val notes: List<Note> = listOf(),
+    val notes: List<String> = listOf(),
     val sourceCitations: List<SourceCitation> = listOf()
 )
-
-enum class NameType {
-    AKA,
-    BIRTH,
-    IMMIGRANT,
-    MAIDEN,
-    MARRIED
-}
 
 interface IndividualAttribute // Not implemented yet
 
@@ -116,7 +104,11 @@ enum class Sex(val value: String) {
     FEMALE("F"),
     INTERSEX("X"),
     UNKNOWN("U"),
-    NOT_RECORDED("N")
+    NOT_RECORDED("N");
+
+    companion object {
+        fun fromValue(value: String) = values().firstOrNull { value == it.value }
+    }
 }
 
 data class FamilyEvent(

@@ -33,19 +33,146 @@ fun parseGedcom(lines: List<String>): Gedcom {
     println("\nparsed")
 //    println(parseContainer)
     println("Nbr of family groups: ${parseContainer.familyGroups.size}")
+    println("Nbr of individuals: ${parseContainer.individuals.size}")
     return Gedcom(
-        familyGroups = parseContainer.familyGroups.toList()
+        familyGroups = parseContainer.familyGroups.toList(),
+        individuals = parseContainer.individuals.toList()
     )
 }
 
 fun parseTopLevelEntities(lineIterator: PeekableIterator<Line>, parseContainer: ParseContainer) {
     when (lineIterator.peek().content()) {
-        "FAM" -> parseFamilyGroup(lineIterator).also { parseContainer.familyGroups.add(it) }
+        "FAM" -> parseFamilyGroup(lineIterator).let { parseContainer.familyGroups.add(it) }
+        "INDI" -> parseIndividual(lineIterator).let { parseContainer.individuals.add(it) }
         else -> {
             println("Skipping: ${lineIterator.peek().line}")
             lineIterator.next()
         }
     }
+}
+
+fun parseIndividual(lineIterator: PeekableIterator<Line>): Individual {
+    val (_, depth, id) = lineIterator.next()
+
+    val names = mutableListOf<IndividualName>()
+    var sex: Sex? = null
+    val events = mutableListOf<IndividualEvent>()
+    val attributes = mutableListOf<IndividualAttribute>()
+    val childToFamilies = mutableListOf<ChildToFamilyLink>()
+    val spouseToFamilies = mutableListOf<SpouseToFamilyLink>()
+    val associations = mutableListOf<Association>()
+    val changeDate: LocalDate? = null
+    val notes = mutableListOf<String>()
+    val sourceCitations = mutableListOf<SourceCitation>()
+    val multimediaLinks = mutableListOf<MultimediaLink>()
+
+    while (lineIterator.hasNext() && lineIterator.peek().depth() > depth) {
+        with(lineIterator.next()) {
+            when (tag()) {
+                "NAME" -> parsePersonalName(this, lineIterator)
+                "SEX" -> Sex.fromValue(content())?.let { sex = it }
+//                "BIRT",
+//                "CHR",
+//                "DEAT",
+//                "BURI",
+//                "CREM",
+//                "ADOP",
+//                "BAPM",
+//                "BARM",
+//                "BASM",
+//                "CHRA",
+//                "CONF",
+//                "FCOM",
+//                "NATU",
+//                "EMIG",
+//                "IMMI",
+//                "CENS",
+//                "PROB",
+//                "WILL",
+//                "GRAD",
+//                "RETI"-> parseevents
+//                "CAST",
+//                "DSCR",
+//                "EDUC",
+//                "IDNO",
+//                "NATI",
+//                "NCHI",
+//                "NMR",
+//                "OCCU",
+//                "PROP",
+//                "RELI",
+//                "RESI",
+//                "TITL",
+//                "FACT" -> parseattributes
+//                "FAMC"->parseChildToFamilyLink()
+//                "FAMS"->parseSpouseToFamilyLink()
+//                "ASSO" -> parseAssociation
+//                "CHAN" -> parseChangeDate
+                "NOTE" -> notes.add(content())
+                "SOUR" -> parseSourceCitationData(this, lineIterator)
+                "OBJE" -> multimediaLinks.add(MultimediaLink(content()))
+                else -> println("Skipping: ${this.line}")
+            }
+        }
+    }
+
+    return Individual(
+        IndividualId(id),
+        names,
+        sex,
+        events,
+        attributes,
+        childToFamilies,
+        spouseToFamilies,
+        associations,
+        changeDate,
+        notes,
+        sourceCitations,
+        multimediaLinks
+    )
+}
+
+fun parsePersonalName(line: Line, lineIterator: PeekableIterator<Line>): IndividualName {
+    val name = line.content()
+    var type: String? = null
+    var prefix: String? = null
+    var given: String? = null
+    var nickname: String? = null
+    var surnamePrefix: String? = null
+    var surname: String? = null
+    var suffix: String? = null
+    val notes = mutableListOf<String>()
+    val sourceCitations = mutableListOf<SourceCitation>()
+
+    while (lineIterator.hasNext() && lineIterator.peek().depth() > line.depth()) {
+        with(lineIterator.next()) {
+            when (tag()) {
+                "TYPE" -> type = content()
+                "NPFX" -> prefix = content()
+                "GIVN" -> given = content()
+                "NICK" -> nickname = content()
+                "SPFX" -> surnamePrefix = content()
+                "SURN" -> surname = content()
+                "NSFX" -> suffix = content()
+                "NOTE" -> notes.add(content())
+                "SOUR" -> parseSourceCitation(this, lineIterator).let { sourceCitations.add(it) }
+                else -> println("Skipping: ${this.line}")
+            }
+        }
+    }
+
+    return IndividualName(
+        name,
+        type,
+        prefix,
+        given,
+        nickname,
+        surnamePrefix,
+        surname,
+        suffix,
+        notes,
+        sourceCitations
+    )
 }
 
 fun parseFamilyGroup(lineIterator: PeekableIterator<Line>): FamilyGroup {
@@ -374,7 +501,8 @@ data class Line(val line: String) {
 }
 
 data class ParseContainer(
-    val familyGroups: MutableCollection<FamilyGroup> = mutableListOf()
+    val familyGroups: MutableCollection<FamilyGroup> = mutableListOf(),
+    val individuals: MutableCollection<Individual> = mutableListOf()
 )
 
 fun Char.notSpace() = this != ' '
