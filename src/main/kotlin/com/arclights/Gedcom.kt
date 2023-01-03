@@ -218,8 +218,32 @@ enum class QUAY(private val value: Int) {
 }
 
 data class Source(
-    val id: SourceId
-)
+    val id: SourceId,
+    val data: Data? = null,
+    val author: String? = null,
+    val title: String? = null,
+    val abbreviation: String? = null,
+    val publicationFacts: String? = null,
+    val text: String? = null,
+//    val sourceRepositoryCitations:List<>
+//    val reference
+    val automatedRecordId: String? = null,
+//    val changeDate
+    val notes: List<String> = listOf(),
+    val multimediaLinks: List<MultimediaLink> = listOf()
+) {
+    data class Data(
+        val events: List<Event> = listOf(),
+        val responsibleAgency: String? = null,
+        val notes: List<String> = listOf()
+    ) {
+        data class Event(
+            val type:String,
+            val date: LocalDate? = null,
+            val place: String? = null
+        )
+    }
+}
 
 data class Note(
     val id: String,

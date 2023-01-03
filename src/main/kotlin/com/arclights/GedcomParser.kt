@@ -23,6 +23,9 @@ fun parseGedcom(lines: List<String>): Gedcom {
         },
         ContentParser("INDI") { id ->
             parseIndividual(id, lineIterator).let { parseContainer.individuals.add(it) }
+        },
+        ContentParser("SOUR") { id ->
+            parseSource(id, lineIterator).let { parseContainer.sources.add(it) }
         }
     )
 
@@ -30,9 +33,11 @@ fun parseGedcom(lines: List<String>): Gedcom {
 //    println(parseContainer)
     println("Nbr of family groups: ${parseContainer.familyGroups.size}")
     println("Nbr of individuals: ${parseContainer.individuals.size}")
+    println("Nbr of sources: ${parseContainer.sources.size}")
     return Gedcom(
         familyGroups = parseContainer.familyGroups.toList(),
-        individuals = parseContainer.individuals.toList()
+        individuals = parseContainer.individuals.toList(),
+        sources = parseContainer.sources.toList()
     )
 }
 
@@ -415,6 +420,80 @@ fun parseEventTypeCitedFrom(tagName: String, lineIterator: LineIterator): EventT
 
 }
 
+fun parseSource(id: String, lineIterator: LineIterator): Source {
+    var data: Source.Data? = null
+    var author: String? = null
+    var title: String? = null
+    var abbreviation: String? = null
+    var publicationFacts: String? = null
+    var text: String? = null
+    var automatedRecordId: String? = null
+    val notes = mutableListOf<String>()
+    val multimediaLinks = mutableListOf<MultimediaLink>()
+
+    lineIterator.parseByTag(
+        TagParser("DATA") { data = parseSourceData(lineIterator) },
+        TagParser("AUTH") { author = it },
+        TagParser("TITL") { title = it },
+        TagParser("ABBR") { abbreviation = it },
+        TagParser("PUBL") { publicationFacts = it },
+        TagParser("TEXT") { text = it },
+//        REPO
+//        REFN
+        TagParser("RIN") { automatedRecordId = it },
+//        CHAN
+        noteParser(notes),
+        multimediaLinkParser(multimediaLinks)
+    )
+
+    return Source(
+        SourceId(id),
+        data,
+        author,
+        title,
+        abbreviation,
+        publicationFacts,
+        text,
+        automatedRecordId,
+        notes,
+        multimediaLinks
+    ).also { println(it) }
+}
+
+fun parseSourceData(lineIterator: LineIterator): Source.Data {
+    val events = mutableListOf<Source.Data.Event>()
+    var responsibleAgency: String? = null
+    val notes = mutableListOf<String>()
+
+    lineIterator.parseByTag(
+        TagParser("EVEN") { type -> parseSourceDataEvent(type, lineIterator).let(events::add) },
+        TagParser("AGNC") { responsibleAgency = it },
+        noteParser(notes)
+    )
+
+    return Source.Data(
+        events,
+        responsibleAgency,
+        notes
+    )
+}
+
+fun parseSourceDataEvent(type: String, lineIterator: LineIterator): Source.Data.Event {
+    var date: LocalDate? = null
+    var place: String? = null
+
+    lineIterator.parseByTag(
+//        DATE
+        TagParser("PLAC") { place = it }
+    )
+
+    return Source.Data.Event(
+        type,
+        date,
+        place
+    )
+}
+
 fun getByteOrderMark(lines: List<String>): Char = lines[0][0]
 
 fun stripByteOrderMark(lines: List<String>) = lines[0]
@@ -508,7 +587,8 @@ data class ContentParser(
 
 data class ParseContainer(
     val familyGroups: MutableCollection<FamilyGroup> = mutableListOf(),
-    val individuals: MutableCollection<Individual> = mutableListOf()
+    val individuals: MutableCollection<Individual> = mutableListOf(),
+    val sources: MutableList<Source> = mutableListOf()
 )
 
 fun Char.notSpace() = this != ' '
