@@ -11,6 +11,7 @@ fun parseGedcom(lines: List<String>): Gedcom {
         .let(::insertDummyFirstLine)
         .mapIndexed(::Line)
         .also(::validateFormat)
+        .mergeConcAndCont()
         .lineIterator()
 
     val parseContainer = ParseContainer()
@@ -45,6 +46,19 @@ fun validateFormat(lines: List<Line>) {
             "\nCannot parse file"
         )
         throw IllegalArgumentException(message)
+    }
+}
+
+fun List<Line>.mergeConcAndCont(): List<Line> {
+    val concOrCont = setOf("CONC", "CONT")
+    return this.fold(listOf()) { lines, line ->
+        if (line.tag() in concOrCont) {
+            val lastLine = lines.last()
+            val updatedLastLine = lastLine.copy(line = lastLine.line + line.content())
+            lines.dropLast(1).plus(updatedLastLine)
+        } else {
+            lines.plus(line)
+        }
     }
 }
 
@@ -383,16 +397,16 @@ fun parseEventTypeCitedFrom(tagName: String, lineIterator: LineIterator): EventT
     // MyHeritage is breaking this GEDCOM rule
 //    return EventType.fromTagName(tagName)
 //        ?.let { type ->
-            var roleInEvent: String? = null
+    var roleInEvent: String? = null
 
-            lineIterator.parseByTag(
-                TagParser("ROLE") { roleInEvent = it }
-            )
+    lineIterator.parseByTag(
+        TagParser("ROLE") { roleInEvent = it }
+    )
 
-            return EventTypeCitedFrom(
-                type,
-                roleInEvent
-            )
+    return EventTypeCitedFrom(
+        type,
+        roleInEvent
+    )
 //        }
 //        ?: run {
 //            println("Could not parse event type cited from with name $tagName")
@@ -410,7 +424,7 @@ fun stripByteOrderMark(lines: List<String>) = lines[0]
 
 fun insertDummyFirstLine(lines: List<String>) = listOf("-1") + lines
 
-data class Line(val lineNbr:Int,val line: String) {
+data class Line(val lineNbr: Int, val line: String) {
     fun depth() = line.takeWhile(Char::notSpace).toInt()
     fun tag() = line.dropWhile(Char::notSpace).drop(1).takeWhile(Char::notSpace)
     fun content() = line.dropWhile(Char::notSpace).drop(1).dropWhile(Char::notSpace).drop(1)
@@ -463,14 +477,14 @@ class LineIterator(lines: List<Line>) : PeekableIterator<Line>(lines) {
         while (hasNext() && peek().depth() > currentDepth) {
             val subLine = next()
             if (subLine.inProperFormat().not()) {
-                logger.error("Could not parse line: ${subLine.line}")
+                logger.error("Could not parse line ${subLine.lineNbr}: ${subLine.line}")
                 continue
             }
             propertyParsers.firstOrNull { parser -> propertyParserKey(parser) == property(subLine) }
 //                ?.also { println("Found parser for property ${property(subLine)}") }
                 ?.let(propertyParser)
                 ?.let { parse -> parse(value(subLine)) }
-                ?: logger.warn("No parser found for property ${property(subLine)}, skipping: ${subLine.line}")
+                ?: logger.warn("No parser found for property ${property(subLine)}, skipping line ${subLine.lineNbr}: ${subLine.line}")
         }
     }
 }
