@@ -26,7 +26,7 @@ class GedcomParserKtTest {
         fun canParseFamily(): Stream<Arguments> = Stream.of(
             Arguments.of(
                 """
-                    0 HEAD
+                    00 HEAD
                     0 @F500590@ FAM
                     1 _UPD 27 NOV 2022 16:34:07 GMT -0600
                     1 HUSB @I501515@
@@ -78,7 +78,7 @@ class GedcomParserKtTest {
             ),
             Arguments.of(
                 """
-                    0 HEAD
+                    00 HEAD
                     0 @F500597@ FAM
                     1 _UPD 28 NOV 2022 15:33:37 GMT -0600
                     1 HUSB @I502105@

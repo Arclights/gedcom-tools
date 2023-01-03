@@ -1,11 +1,13 @@
 package com.arclights
 
 fun <T> List<T>.peekableIterator() = PeekableIterator(this)
-class PeekableIterator<T>(private val list: List<T>) : Iterator<T> {
+open class PeekableIterator<T>(private val list: List<T>) : Iterator<T> {
     var i = 0;
-    override fun hasNext() = i < list.size
+    override fun hasNext() = i + 1 < list.size
 
-    override fun next() = list[i++]
+    override fun next() = list[++i]
 
-    fun peek() = list[i]
+    fun peek() = list[i + 1]
+
+    fun current() = list[i]
 }

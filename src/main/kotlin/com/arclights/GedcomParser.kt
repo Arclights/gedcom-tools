@@ -8,27 +8,22 @@ private val logger = LoggerFactory.getLogger("GedcomParser")
 fun parseGedcom(lines: List<String>): Gedcom {
     val lineIterator = lines
         .let(::stripByteOrderMark)
-        .map(::Line)
-        .peekableIterator()
+        .let(::insertDummyFirstLine)
+        .mapIndexed(::Line)
+        .also(::validateFormat)
+        .lineIterator()
 
     val parseContainer = ParseContainer()
 
-    println("${"0".toInt()}")
     println("parsing\n")
-    while (lineIterator.hasNext()) {
-        val line = lineIterator.peek()
-
-        if (line.inProperFormat().not()) {
-            logger.error("Could not parse line: ${line.line}")
-            lineIterator.next()
-            continue
+    lineIterator.parseByContent(
+        ContentParser("FAM") { id ->
+            parseFamilyGroup(id, lineIterator).let { parseContainer.familyGroups.add(it) }
+        },
+        ContentParser("INDI") { id ->
+            parseIndividual(id, lineIterator).let { parseContainer.individuals.add(it) }
         }
-
-//        println(line.line)
-        parseTopLevelEntities(lineIterator, parseContainer)
-//        lineIterator.next()
-//        println("${line.depth()} ${line.tag()} ${line.content()}")
-    }
+    )
 
     println("\nparsed")
 //    println(parseContainer)
@@ -40,19 +35,21 @@ fun parseGedcom(lines: List<String>): Gedcom {
     )
 }
 
-fun parseTopLevelEntities(lineIterator: PeekableIterator<Line>, parseContainer: ParseContainer) {
-    when (lineIterator.peek().content()) {
-        "FAM" -> parseFamilyGroup(lineIterator).let { parseContainer.familyGroups.add(it) }
-        "INDI" -> parseIndividual(lineIterator).let { parseContainer.individuals.add(it) }
-        else -> {
-            println("Skipping: ${lineIterator.peek().line}")
-            lineIterator.next()
-        }
+fun validateFormat(lines: List<Line>) {
+    val improperlyFormattedLines = lines.filter { it.inProperFormat().not() }
+
+    if (improperlyFormattedLines.isEmpty().not()) {
+        val message = improperlyFormattedLines.joinToString(
+            "\n",
+            "Following lines are improperly formatted:\n",
+            "\nCannot parse file"
+        )
+        throw IllegalArgumentException(message)
     }
 }
 
-fun parseIndividual(lineIterator: PeekableIterator<Line>): Individual {
-    val (_, depth, id) = lineIterator.next()
+fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
+    println("Parsing individual")
 
     val names = mutableListOf<IndividualName>()
     var sex: Sex? = null
@@ -66,12 +63,12 @@ fun parseIndividual(lineIterator: PeekableIterator<Line>): Individual {
     val sourceCitations = mutableListOf<SourceCitation>()
     val multimediaLinks = mutableListOf<MultimediaLink>()
 
-    while (lineIterator.hasNext() && lineIterator.peek().depth() > depth) {
-        with(lineIterator.next()) {
-            when (tag()) {
-                "NAME" -> parsePersonalName(this, lineIterator)
-                "SEX" -> Sex.fromValue(content())?.let { sex = it }
-//                "BIRT",
+    lineIterator.parseByTag(
+        TagParser("NAME") { name -> parsePersonalName(name, lineIterator).let(names::add) },
+        TagParser("SEX") { sexValue -> sex = Sex.fromValue(sexValue) },
+        noteParser(notes),
+        multimediaLinkParser(multimediaLinks),
+        sourceCitationParser(sourceCitations, lineIterator)
 //                "CHR",
 //                "DEAT",
 //                "BURI",
@@ -108,13 +105,7 @@ fun parseIndividual(lineIterator: PeekableIterator<Line>): Individual {
 //                "FAMS"->parseSpouseToFamilyLink()
 //                "ASSO" -> parseAssociation
 //                "CHAN" -> parseChangeDate
-                "NOTE" -> notes.add(content())
-                "SOUR" -> parseSourceCitationData(this, lineIterator)
-                "OBJE" -> multimediaLinks.add(MultimediaLink(content()))
-                else -> println("Skipping: ${this.line}")
-            }
-        }
-    }
+    )
 
     return Individual(
         IndividualId(id),
@@ -129,11 +120,11 @@ fun parseIndividual(lineIterator: PeekableIterator<Line>): Individual {
         notes,
         sourceCitations,
         multimediaLinks
-    )
+    ).also { println(it) }
 }
 
-fun parsePersonalName(line: Line, lineIterator: PeekableIterator<Line>): IndividualName {
-    val name = line.content()
+fun parsePersonalName(name: String, lineIterator: LineIterator): IndividualName {
+    println("Parsing personal name")
     var type: String? = null
     var prefix: String? = null
     var given: String? = null
@@ -144,22 +135,17 @@ fun parsePersonalName(line: Line, lineIterator: PeekableIterator<Line>): Individ
     val notes = mutableListOf<String>()
     val sourceCitations = mutableListOf<SourceCitation>()
 
-    while (lineIterator.hasNext() && lineIterator.peek().depth() > line.depth()) {
-        with(lineIterator.next()) {
-            when (tag()) {
-                "TYPE" -> type = content()
-                "NPFX" -> prefix = content()
-                "GIVN" -> given = content()
-                "NICK" -> nickname = content()
-                "SPFX" -> surnamePrefix = content()
-                "SURN" -> surname = content()
-                "NSFX" -> suffix = content()
-                "NOTE" -> notes.add(content())
-                "SOUR" -> parseSourceCitation(this, lineIterator).let { sourceCitations.add(it) }
-                else -> println("Skipping: ${this.line}")
-            }
-        }
-    }
+    lineIterator.parseByTag(
+        TagParser("TYPE") { type = it },
+        TagParser("NPFX") { prefix = it },
+        TagParser("GIVN") { given = it },
+        TagParser("NICK") { nickname = it },
+        TagParser("SPFX") { surnamePrefix = it },
+        TagParser("SURN") { surname = it },
+        TagParser("NSFX") { suffix = it },
+        noteParser(notes),
+        sourceCitationParser(sourceCitations, lineIterator)
+    )
 
     return IndividualName(
         name,
@@ -175,9 +161,8 @@ fun parsePersonalName(line: Line, lineIterator: PeekableIterator<Line>): Individ
     )
 }
 
-fun parseFamilyGroup(lineIterator: PeekableIterator<Line>): FamilyGroup {
+fun parseFamilyGroup(id: String, lineIterator: LineIterator): FamilyGroup {
     println("Parsing family group")
-    val (_, depth, id) = lineIterator.next()
 
     val events = mutableListOf<FamilyEvent>()
     var husband: IndividualId? = null
@@ -189,32 +174,27 @@ fun parseFamilyGroup(lineIterator: PeekableIterator<Line>): FamilyGroup {
     val sourceCitations = mutableListOf<SourceCitation>()
     val multimediaLinks = mutableListOf<MultimediaLink>()
 
-    while (lineIterator.hasNext() && lineIterator.peek().depth() > depth) {
-        with(lineIterator.next()) {
-            when (tag()) {
-                "HUSB" -> husband = IndividualId(content())
-                "WIFE" -> wife = IndividualId(content())
-                "CHIL" -> children.add(IndividualId(content()))
-                "NCHI" -> nbrOfChildren = content().toInt()
-                "ANUL",
-                "CENS",
-                "DIV",
-                "DIVF",
-                "ENGA",
-                "MARB",
-                "MARC",
-                "MARR",
-                "MARL",
-                "MARS" -> parseFamilyEvent(this, lineIterator).let { events.add(it) }
+    val familyEventParser: (String) -> Unit = { _ -> parseFamilyEvent(lineIterator).let { events.add(it) } }
 
-                "NOTE" -> notes.add(content())
-                "SOUR" -> parseSourceCitationData(this, lineIterator)
-                "OBJE" -> multimediaLinks.add(MultimediaLink(content()))
-
-                else -> println("Skipping: $line")
-            }
-        }
-    }
+    lineIterator.parseByTag(
+        TagParser("HUSB") { husband = IndividualId(it) },
+        TagParser("WIFE") { wife = IndividualId(it) },
+        TagParser("CHIL") { children.add(IndividualId(it)) },
+        TagParser("NCHI") { nbrOfChildren = it.toInt() },
+        TagParser("ANUL", familyEventParser),
+        TagParser("CENS", familyEventParser),
+        TagParser("DIV", familyEventParser),
+        TagParser("DIVF", familyEventParser),
+        TagParser("ENGA", familyEventParser),
+        TagParser("MARB", familyEventParser),
+        TagParser("MARC", familyEventParser),
+        TagParser("MARR", familyEventParser),
+        TagParser("MARL", familyEventParser),
+        TagParser("MARS", familyEventParser),
+        noteParser(notes),
+        sourceCitationParser(sourceCitations, lineIterator),
+        multimediaLinkParser(multimediaLinks)
+    )
 
     return FamilyGroup(
         id = FamilyGroupId(id),
@@ -230,8 +210,8 @@ fun parseFamilyGroup(lineIterator: PeekableIterator<Line>): FamilyGroup {
     ).also { println(it) }
 }
 
-fun parseFamilyEvent(line: Line, lineIterator: PeekableIterator<Line>): FamilyEvent {
-    val (_, depth, tag) = line
+fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
+    val tag = lineIterator.current().tag()
     val eventType = FamilyEventType.fromTagNameStrict(tag)
 
     var husbandAge: Int? = null
@@ -245,25 +225,17 @@ fun parseFamilyEvent(line: Line, lineIterator: PeekableIterator<Line>): FamilyEv
     val sourceCitations = mutableListOf<SourceCitation>()
     val multimediaLinks = mutableListOf<MultimediaLink>()
 
-    while (lineIterator.hasNext() && lineIterator.peek().depth() > depth) {
-        with(lineIterator.next()) {
-            when (tag()) {
-                "HUSB" -> lineIterator.next().content().toInt().let { husbandAge = it }
-                "WIFE" -> lineIterator.next().content().toInt().let { wifeAge = it }
-                else -> parseEventDetailPart(
-                    this,
-                    lineIterator,
-                    { eventOrFactClassification = it },
-                    { date = it },
-                    { place = it },
-                    { address = it },
-                    { notes.add(it) },
-                    { sourceCitations.add(it) },
-                    { multimediaLinks.add(it) }
-                )
-            }
-        }
-    }
+    lineIterator.parseByTag(
+        TagParser("HUSB") { husbandAge = it.toInt() },
+        TagParser("WIFE") { wifeAge = it.toInt() },
+        TagParser("TYPE") { eventOrFactClassification = it },
+//            "DATE"->
+        TagParser("PLAC") { name -> place = parserPlace(name, lineIterator) },
+        TagParser("ADDR") { address = parseAddress(lineIterator) },
+        noteParser(notes),
+        sourceCitationParser(sourceCitations, lineIterator),
+        multimediaLinkParser(multimediaLinks)
+    )
 
     return FamilyEvent(
         eventType,
@@ -283,43 +255,15 @@ fun parseFamilyEvent(line: Line, lineIterator: PeekableIterator<Line>): FamilyEv
     )
 }
 
-fun parseEventDetailPart(
-    line: Line,
-    lineIterator: PeekableIterator<Line>,
-    eventOrFactClassificationSetter: (String) -> Unit,
-    dateSetter: (LocalDate) -> Unit,
-    placeSetter: (Place) -> Unit,
-    addressSetter: (Address) -> Unit,
-    notesSetter: (String) -> Unit,
-    sourceCitationsSetter: (SourceCitation) -> Unit,
-    multimediaLinksSetter: (MultimediaLink) -> Unit
-) {
-    when (line.tag()) {
-        "TYPE" -> line.content().let(eventOrFactClassificationSetter)
-//            "DATE"->
-        "PLAC" -> parserPlace(line, lineIterator).let(placeSetter)
-        "ADDR" -> parseAddress(line, lineIterator).let(addressSetter)
-        "NOTE" -> line.content().let(notesSetter)
-        "SOUR" -> parseSourceCitation(line, lineIterator).let(sourceCitationsSetter)
-        "OBJE" -> multimediaLinksSetter(MultimediaLink(line.content()))
-    }
-}
-
-fun parserPlace(line: Line, lineIterator: PeekableIterator<Line>): Place {
-    val name = line.content()
+fun parserPlace(name: String, lineIterator: LineIterator): Place {
     var latitude: Double? = null
     var longitude: Double? = null
     val notes = mutableListOf<String>()
 
-    while (lineIterator.hasNext() && lineIterator.peek().depth() > line.depth()) {
-        with(lineIterator.next()) {
-            when (tag()) {
-                "MAP" -> parseCoordinates(depth(), lineIterator, { longitude = it }, { latitude = it })
-                "NOTE" -> notes.add(content())
-                else -> println("Skipping: ${this.line}")
-            }
-        }
-    }
+    lineIterator.parseByTag(
+        TagParser("MAP") { parseCoordinates(lineIterator, { longitude = it }, { latitude = it }) },
+        noteParser(notes)
+    )
 
     return Place(
         name,
@@ -330,23 +274,17 @@ fun parserPlace(line: Line, lineIterator: PeekableIterator<Line>): Place {
 }
 
 fun parseCoordinates(
-    depth: Int,
-    lineIterator: PeekableIterator<Line>,
+    lineIterator: LineIterator,
     longitudeSetter: (Double) -> Unit,
     latitudeSetter: (Double) -> Unit
 ) {
-    while (lineIterator.hasNext() && lineIterator.peek().depth() > depth) {
-        with(lineIterator.next()) {
-            when (tag()) {
-                "LATI" -> content().drop(1).toDouble().let(latitudeSetter)
-                "LONG" -> content().drop(1).toDouble().let(longitudeSetter)
-                else -> println("Skipping: ${this.line}")
-            }
-        }
-    }
+    lineIterator.parseByTag(
+        TagParser("LATI") { it.drop(1).toDouble().let(latitudeSetter) },
+        TagParser("LONG") { it.drop(1).toDouble().let(longitudeSetter) }
+    )
 }
 
-fun parseAddress(line: Line, lineIterator: PeekableIterator<Line>): Address {
+fun parseAddress(lineIterator: LineIterator): Address {
     var address1: String? = null
     var address2: String? = null
     var address3: String? = null
@@ -359,20 +297,15 @@ fun parseAddress(line: Line, lineIterator: PeekableIterator<Line>): Address {
     val faxes = mutableListOf<String>()
     val wwws = mutableListOf<String>()
 
-    while (lineIterator.hasNext() && lineIterator.peek().depth() > line.depth()) {
-        with(lineIterator.next()) {
-            when (tag()) {
-                "ADR1" -> address1 = content()
-                "ADR2" -> address2 = content()
-                "ADR3" -> address3 = content()
-                "CITY" -> city = content()
-                "STAE" -> state = content()
-                "POST" -> postalCode = content()
-                "CTRY" -> country = content()
-                else -> println("Skipping: ${this.line}")
-            }
-        }
-    }
+    lineIterator.parseByTag(
+        TagParser("ADR1") { address1 = it },
+        TagParser("ADR2") { address2 = it },
+        TagParser("ADR3") { address3 = it },
+        TagParser("CITY") { city = it },
+        TagParser("STAE") { state = it },
+        TagParser("POST") { postalCode = it },
+        TagParser("CTRY") { country = it }
+    )
 
     while (lineIterator.hasNext()) {
         val peekedLine = lineIterator.peek()
@@ -401,8 +334,8 @@ fun parseAddress(line: Line, lineIterator: PeekableIterator<Line>): Address {
     )
 }
 
-fun parseSourceCitation(line: Line, lineIterator: PeekableIterator<Line>): SourceCitation {
-    val source = SourceId(line.content())
+fun parseSourceCitation(id: String, lineIterator: LineIterator): SourceCitation {
+    val source = SourceId(id)
     var page: String? = null
     var eventTypeCitedFrom: EventTypeCitedFrom? = null
     var data: SourceCitation.Data? = null
@@ -410,19 +343,14 @@ fun parseSourceCitation(line: Line, lineIterator: PeekableIterator<Line>): Sourc
     val multimediaLinks = mutableListOf<MultimediaLink>()
     var qualityAssessment: QUAY? = null
 
-    while (lineIterator.hasNext() && lineIterator.peek().depth() > line.depth()) {
-        with(lineIterator.next()) {
-            when (tag()) {
-                "PAGE" -> content().let { page = it }
-                "EVEN" -> parseEventTypeCitedFrom(this, lineIterator).let { eventTypeCitedFrom = it }
-                "DATA" -> parseSourceCitationData(this, lineIterator).let { data = it }
-                "NOTE" -> notes.add(content())
-                "OBJE" -> multimediaLinks.add(MultimediaLink(content()))
-                "QUAY" -> QUAY.fromValue(content().toInt())?.let { qualityAssessment = it }
-                else -> println("Skipping: ${this.line}")
-            }
-        }
-    }
+    lineIterator.parseByTag(
+        TagParser("PAGE") { page = it },
+        TagParser("EVEN") { tagName -> eventTypeCitedFrom = parseEventTypeCitedFrom(tagName, lineIterator) },
+        TagParser("DATA") { data = parseSourceCitationData(lineIterator) },
+        noteParser(notes),
+        multimediaLinkParser(multimediaLinks),
+        TagParser("QUAY") { qualityAssessment = QUAY.fromValue(it.toInt()) }
+    )
 
     return SourceCitation(
         source,
@@ -435,19 +363,14 @@ fun parseSourceCitation(line: Line, lineIterator: PeekableIterator<Line>): Sourc
     )
 }
 
-fun parseSourceCitationData(line: Line, lineIterator: PeekableIterator<Line>): SourceCitation.Data {
+fun parseSourceCitationData(lineIterator: LineIterator): SourceCitation.Data {
     var date: LocalDate? = null
     var text: String? = null
 
-    while (lineIterator.hasNext() && lineIterator.peek().depth() > line.depth()) {
-        with(lineIterator.next()) {
-            when (tag()) {
-                //"DATE"->
-                "TEXT" -> text = content()
-                else -> println("Skipping: ${this.line}")
-            }
-        }
-    }
+    lineIterator.parseByTag(
+        //"DATE"->
+        TagParser("TEXT") { text = it }
+    )
 
     return SourceCitation.Data(
         date,
@@ -455,23 +378,27 @@ fun parseSourceCitationData(line: Line, lineIterator: PeekableIterator<Line>): S
     )
 }
 
-fun parseEventTypeCitedFrom(line: Line, lineIterator: PeekableIterator<Line>): EventTypeCitedFrom {
-    val type = EventType.fromTagNameStrict(line.content())
-    var roleInEvent: String? = null
+fun parseEventTypeCitedFrom(tagName: String, lineIterator: LineIterator): EventTypeCitedFrom? {
+    val type = tagName
+    // MyHeritage is breaking this GEDCOM rule
+//    return EventType.fromTagName(tagName)
+//        ?.let { type ->
+            var roleInEvent: String? = null
 
-    while (lineIterator.hasNext() && lineIterator.peek().depth() > line.depth()) {
-        with(lineIterator.next()) {
-            when (tag()) {
-                "ROLE" -> roleInEvent = content()
-                else -> println("Skipping: ${this.line}")
-            }
-        }
-    }
+            lineIterator.parseByTag(
+                TagParser("ROLE") { roleInEvent = it }
+            )
 
-    return EventTypeCitedFrom(
-        type,
-        roleInEvent
-    )
+            return EventTypeCitedFrom(
+                type,
+                roleInEvent
+            )
+//        }
+//        ?: run {
+//            println("Could not parse event type cited from with name $tagName")
+//            return null
+//        }
+
 }
 
 fun getByteOrderMark(lines: List<String>): Char = lines[0][0]
@@ -481,14 +408,12 @@ fun stripByteOrderMark(lines: List<String>) = lines[0]
     .let { listOf(it) }
     .let { it + lines.drop(1) }
 
-data class Line(val line: String) {
+fun insertDummyFirstLine(lines: List<String>) = listOf("-1") + lines
+
+data class Line(val lineNbr:Int,val line: String) {
     fun depth() = line.takeWhile(Char::notSpace).toInt()
     fun tag() = line.dropWhile(Char::notSpace).drop(1).takeWhile(Char::notSpace)
     fun content() = line.dropWhile(Char::notSpace).drop(1).dropWhile(Char::notSpace).drop(1)
-
-    operator fun component2() = depth()
-    operator fun component3() = tag()
-
 
     fun inProperFormat(): Boolean {
         try {
@@ -498,7 +423,74 @@ data class Line(val line: String) {
         }
         return true
     }
+
+    override fun toString(): String {
+        return "$lineNbr: $line"
+    }
 }
+
+fun List<Line>.lineIterator() = LineIterator(this)
+class LineIterator(lines: List<Line>) : PeekableIterator<Line>(lines) {
+    fun parseByContent(vararg contentParsers: ContentParser) {
+        parseByProperty(
+            Line::content,
+            Line::tag,
+            contentParsers,
+            ContentParser::content,
+            ContentParser::parser
+        )
+    }
+
+    fun parseByTag(vararg tagParsers: TagParser) {
+        parseByProperty(
+            Line::tag,
+            Line::content,
+            tagParsers,
+            TagParser::tag,
+            TagParser::parser
+        )
+    }
+
+    private fun <T> parseByProperty(
+        property: (Line) -> String,
+        value: (Line) -> String,
+        propertyParsers: Array<T>,
+        propertyParserKey: (T) -> String,
+        propertyParser: (T) -> (String) -> Unit
+    ) {
+        val superLine = current()
+        val currentDepth = superLine.depth()
+        while (hasNext() && peek().depth() > currentDepth) {
+            val subLine = next()
+            if (subLine.inProperFormat().not()) {
+                logger.error("Could not parse line: ${subLine.line}")
+                continue
+            }
+            propertyParsers.firstOrNull { parser -> propertyParserKey(parser) == property(subLine) }
+//                ?.also { println("Found parser for property ${property(subLine)}") }
+                ?.let(propertyParser)
+                ?.let { parse -> parse(value(subLine)) }
+                ?: logger.warn("No parser found for property ${property(subLine)}, skipping: ${subLine.line}")
+        }
+    }
+}
+
+private fun noteParser(notes: MutableList<String>) = TagParser("NOTE") { notes.add(it) }
+private fun multimediaLinkParser(multimediaLinks: MutableList<MultimediaLink>) =
+    TagParser("OBJE") { link -> multimediaLinks.add(MultimediaLink(link)) }
+
+private fun sourceCitationParser(sourceCitations: MutableList<SourceCitation>, lineIterator: LineIterator) =
+    TagParser("SOUR") { id -> sourceCitations.add(parseSourceCitation(id, lineIterator)) }
+
+data class TagParser(
+    val tag: String,
+    val parser: (String) -> Unit
+)
+
+data class ContentParser(
+    val content: String,
+    val parser: (String) -> Unit
+)
 
 data class ParseContainer(
     val familyGroups: MutableCollection<FamilyGroup> = mutableListOf(),

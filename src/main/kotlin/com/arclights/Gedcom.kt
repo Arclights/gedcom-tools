@@ -95,7 +95,7 @@ data class SourceCitation(
 }
 
 data class EventTypeCitedFrom(
-    val eventType: EventType,
+    val eventType: String,
     val role: String?
 )
 
@@ -157,10 +157,13 @@ data class Address(
 
 interface EventType {
     companion object {
-        fun fromTagNameStrict(tagName: String): EventType =
+        fun fromTagName(tagName: String): EventType? =
             FamilyEventType.fromTagName(tagName) as EventType?
                 ?: IndividualEventType.fromTagName(tagName) as EventType?
                 ?: AttributeType.fromTagName(tagName) as EventType?
+
+        fun fromTagNameStrict(tagName: String): EventType =
+            fromTagName(tagName)
                 ?: throw IllegalArgumentException("Invalid event type tag: $tagName")
     }
 }
