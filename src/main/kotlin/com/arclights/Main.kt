@@ -1,10 +1,20 @@
 package com.arclights
 
-import java.io.File
+import com.arclights.commands.commands
 
 fun main(args: Array<String>) {
-    val lines = File("src/main/resources", "test.ged")
-        .readLines()
-    println("File read")
-    parseGedcom(lines)
+    if (args.isEmpty()) {
+        println("No GEDCOM file supplied")
+    }
+
+    val gedcom = GedcomReader().read(args[0])
+
+    while (true) {
+        println("Select one of the commands")
+        commands.forEachIndexed { i, command ->
+            println("$i: ${command.getName()}")
+        }
+        val command = readln()
+        commands[command.toInt()].run(gedcom)
+    }
 }

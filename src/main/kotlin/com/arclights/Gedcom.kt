@@ -3,9 +3,9 @@ package com.arclights
 import java.time.LocalDate
 
 data class Gedcom(
-    val individuals: List<Individual> = listOf(),
-    val familyGroups: List<FamilyGroup> = listOf(),
-    val sources: List<Source> = listOf()
+    val individuals: Map<IndividualId, Individual> = mapOf(),
+    val familyGroups: Map<FamilyGroupId, FamilyGroup> = mapOf(),
+    val sources: Map<SourceId, Source> = mapOf()
 )
 
 data class Individual(
@@ -38,9 +38,16 @@ data class IndividualName(
 
 interface IndividualAttribute // Not implemented yet
 
-interface ChildToFamilyLink // Not implemented yet
+data class ChildToFamilyLink(
+    val familyId: FamilyGroupId,
+    val pedigreeLinkageType: String? = null,
+    val notes: List<String> = listOf()
+)
 
-interface SpouseToFamilyLink // Not implemented yet
+data class SpouseToFamilyLink(
+    val familyId: FamilyGroupId,
+    val notes: List<String> = listOf()
+)
 
 interface Association // Not implemented yet
 
@@ -238,7 +245,7 @@ data class Source(
         val notes: List<String> = listOf()
     ) {
         data class Event(
-            val type:String,
+            val type: String,
             val date: LocalDate? = null,
             val place: String? = null
         )

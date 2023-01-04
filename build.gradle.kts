@@ -14,6 +14,7 @@ repositories {
 
 dependencies {
     implementation("ch.qos.logback", "logback-classic", "1.4.5")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.0")
 
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter", "junit-jupiter-params", "5.0.0")

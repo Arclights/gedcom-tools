@@ -35,9 +35,9 @@ fun parseGedcom(lines: List<String>): Gedcom {
     println("Nbr of individuals: ${parseContainer.individuals.size}")
     println("Nbr of sources: ${parseContainer.sources.size}")
     return Gedcom(
-        familyGroups = parseContainer.familyGroups.toList(),
-        individuals = parseContainer.individuals.toList(),
-        sources = parseContainer.sources.toList()
+        familyGroups = parseContainer.familyGroups.associateBy { it.id },
+        individuals = parseContainer.individuals.associateBy { it.id },
+        sources = parseContainer.sources.associateBy { it.id }
     )
 }
 
@@ -87,7 +87,7 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
         TagParser("SEX") { sexValue -> sex = Sex.fromValue(sexValue) },
         noteParser(notes),
         multimediaLinkParser(multimediaLinks),
-        sourceCitationParser(sourceCitations, lineIterator)
+        sourceCitationParser(sourceCitations, lineIterator),
 //                "CHR",
 //                "DEAT",
 //                "BURI",
@@ -120,8 +120,8 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
 //                "RESI",
 //                "TITL",
 //                "FACT" -> parseattributes
-//                "FAMC"->parseChildToFamilyLink()
-//                "FAMS"->parseSpouseToFamilyLink()
+        TagParser("FAMC") { familyId -> parseChildToFamilyLink(familyId, lineIterator).let(childToFamilies::add) },
+        TagParser("FAMS") { familyId -> parseSpouseToFamilyLink(familyId, lineIterator).let(spouseToFamilies::add) }
 //                "ASSO" -> parseAssociation
 //                "CHAN" -> parseChangeDate
     )
@@ -177,6 +177,35 @@ fun parsePersonalName(name: String, lineIterator: LineIterator): IndividualName 
         suffix,
         notes,
         sourceCitations
+    )
+}
+
+fun parseChildToFamilyLink(familyId: String, lineIterator: LineIterator): ChildToFamilyLink {
+    var pedigreeLinkageType: String? = null
+    val notes = mutableListOf<String>()
+
+    lineIterator.parseByTag(
+        TagParser("PEDI") { pedigreeLinkageType = it },
+        noteParser(notes)
+    )
+
+    return ChildToFamilyLink(
+        FamilyGroupId(familyId),
+        pedigreeLinkageType,
+        notes.toList()
+    )
+}
+
+private fun parseSpouseToFamilyLink(familyId: String, lineIterator: LineIterator): SpouseToFamilyLink {
+    val notes = mutableListOf<String>()
+
+    lineIterator.parseByTag(
+        noteParser(notes)
+    )
+
+    return SpouseToFamilyLink(
+        FamilyGroupId(familyId),
+        notes.toList()
     )
 }
 
