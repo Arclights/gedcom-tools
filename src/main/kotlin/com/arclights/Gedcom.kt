@@ -11,13 +11,13 @@ data class Gedcom(
 data class Individual(
     val id: IndividualId,
     val names: List<IndividualName> = listOf(),
-    val sex: Sex?,
+    val sex: Sex? = null,
     val events: List<IndividualEvent> = listOf(),
     val attributes: List<IndividualAttribute> = listOf(),
     val childToFamilies: List<ChildToFamilyLink> = listOf(),
     val spouseToFamilies: List<SpouseToFamilyLink> = listOf(),
     val associations: List<Association> = listOf(),
-    val changeDate: LocalDate?,
+    val changeDate: LocalDate? = null,
     val notes: List<String> = listOf(),
     val sourceCitations: List<SourceCitation> = listOf(),
     val multimediaLinks: List<MultimediaLink> = listOf()
@@ -25,13 +25,13 @@ data class Individual(
 
 data class IndividualName(
     val name: String,
-    val type: String?,
-    val prefix: String?,
-    val given: String?,
-    val nickname: String?,
-    val surnamePrefix: String?,
-    val surname: String?,
-    val suffix: String?,
+    val type: String? = null,
+    val prefix: String? = null,
+    val given: String? = null,
+    val nickname: String? = null,
+    val surnamePrefix: String? = null,
+    val surname: String? = null,
+    val suffix: String? = null,
     val notes: List<String> = listOf(),
     val sourceCitations: List<SourceCitation> = listOf()
 )

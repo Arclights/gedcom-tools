@@ -44,8 +44,8 @@ class GedcomParserKtTest {
                     2 NOTE Make/Maka: Johan Sandström
                 """,
                 Gedcom(
-                    familyGroups = listOf(
-                        FamilyGroup(
+                    familyGroups = mapOf(
+                        FamilyGroupId("@F500590@") to FamilyGroup(
                             id = FamilyGroupId("@F500590@"),
                             husbandId = IndividualId("@I501515@"),
                             wifeId = IndividualId("@I502070@"),
@@ -89,8 +89,8 @@ class GedcomParserKtTest {
                     1 MARR
                 """.trimIndent(),
                 Gedcom(
-                    familyGroups = listOf(
-                        FamilyGroup(
+                    familyGroups = mapOf(
+                        FamilyGroupId("@F500597@") to FamilyGroup(
                             id = FamilyGroupId("@F500597@"),
                             husbandId = IndividualId("@I502105@"),
                             wifeId = IndividualId("@I502103@"),
