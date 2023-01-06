@@ -21,7 +21,11 @@ data class Individual(
     val notes: List<String> = listOf(),
     val sourceCitations: List<SourceCitation> = listOf(),
     val multimediaLinks: List<MultimediaLink> = listOf()
-)
+){
+    override fun toString(): String {
+        return "${id.value} ${names.first().name}"
+    }
+}
 
 data class IndividualName(
     val name: String,

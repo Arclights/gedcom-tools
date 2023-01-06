@@ -6,6 +6,10 @@ import com.arclights.FamilyGroupId
 import com.arclights.Gedcom
 import com.arclights.Individual
 import com.arclights.SpouseToFamilyLink
+import com.arclights.commands.GradeRelationship.RoleInRelationship.CHILD
+import com.arclights.commands.GradeRelationship.RoleInRelationship.PARENT
+import com.arclights.commands.GradeRelationship.RoleInRelationship.PARTNER
+import com.arclights.commands.GradeRelationship.RoleInRelationship.UNKNOWN
 import com.arclights.commands.SingleLineEntity.Companion.horizontalConnection
 import com.arclights.commands.SingleLineEntity.Companion.verticalConnection
 
@@ -27,9 +31,7 @@ class GradeRelationship : Command {
         }
 
         println(path)
-        path.forEach {
-            println(it.person.names.first().name)
-        }
+        println(path.toPrintableString())
     }
 
     private fun Gedcom.findPerson(personLabel: String): Individual? {
@@ -62,7 +64,7 @@ class GradeRelationship : Command {
 
     private fun Gedcom.findPath(from: Individual, to: Individual): List<RelationshipPart>? {
         val exploredIds = mutableSetOf(from.id)
-        val queue = queueOf(Node(null, RelationshipPart(RoleInRelationship.UNKNOWN, from)))
+        val queue = queueOf(Node(null, RelationshipPart(UNKNOWN, from)))
         while (queue.isEmpty().not()) {
             val v = queue.dequeue()
             println("at person ${v.value.person.names.first().name}")
@@ -90,7 +92,7 @@ class GradeRelationship : Command {
             .flatMap { listOf(it.husbandId, it.wifeId) }
             .filterNotNull()
             .map(individuals::getValue)
-            .map { RelationshipPart(RoleInRelationship.PARENT, it) }
+            .map { RelationshipPart(PARENT, it) }
 
         println(
             "is spouse in families: ${
@@ -102,7 +104,7 @@ class GradeRelationship : Command {
             .map(familyGroups::getValue)
             .flatMap(FamilyGroup::childrenIds)
             .map(individuals::getValue)
-            .map { RelationshipPart(RoleInRelationship.CHILD, it) }
+            .map { RelationshipPart(CHILD, it) }
 
         val partner = person.spouseToFamilies
             .map(SpouseToFamilyLink::familyId)
@@ -111,7 +113,7 @@ class GradeRelationship : Command {
             .filterNotNull()
             .filterNot(person.id::equals)
             .map(individuals::getValue)
-            .map { RelationshipPart(RoleInRelationship.PARTNER, it) }
+            .map { RelationshipPart(PARTNER, it) }
 
         return parents + children + partner
     }
@@ -135,13 +137,21 @@ class GradeRelationship : Command {
 }
 
 fun String.padTo(widthToPadTo: Int): String {
-    fun blankString(width: Int) = List(width) { ' ' }.joinToString("")
     val diff = widthToPadTo - length
     val padding = diff / 2
     val leftPadding = padding
     val rightPadding = if (diff % 2 != 0) padding + 1 else padding
 
-    return blankString(leftPadding) + this + blankString(rightPadding)
+    return " ".repeat(leftPadding) + this + " ".repeat(rightPadding)
+}
+
+fun <T> List<T>.padTo(toPadTo: Int, padder: T): List<T> {
+    val diff = toPadTo - size
+    val padding = diff / 2
+    val prePadding = padding
+    val postPadding = if (diff % 2 != 0) padding + 1 else padding
+
+    return List(prePadding) { padder } + this + List(postPadding) { padder }
 }
 
 data class PrintMatrix(private val entries: MutableMap<Pair<Int, Int>, PrintMatrixEntity> = mutableMapOf()) {
@@ -149,6 +159,7 @@ data class PrintMatrix(private val entries: MutableMap<Pair<Int, Int>, PrintMatr
         entries[column to row] = value
     }
 
+    operator fun get(column: Int, row: Int) = entries[column to row]
 
     override fun toString(): String {
         val minColumn = 0
@@ -159,16 +170,44 @@ data class PrintMatrix(private val entries: MutableMap<Pair<Int, Int>, PrintMatr
         val columnWidths = (minColumn..maxColumn).map { column ->
             val entitiesInColumn = entries
                 .filter { (key, _) -> key.first == column }
-                .map(Map.Entry<Pair<Int, Int>, PrintMatrixEntity>::value)
+                .values
             entitiesInColumn.maxOf { it.width() }
+        }
+
+        val rowHeights = (minRow..maxRow).associateWith { row ->
+            val entitiesInRow = entries
+                .filter { (key, _) -> key.second == row }
+                .values
+            entitiesInRow.maxOf { it.height() }
         }
 
         val sb = StringBuilder()
 
         for (row in (maxRow downTo minRow)) {
-            for (column in (minColumn..maxColumn)) {
-                val columnWidth = columnWidths[column]
-                (entries[column to row] ?: SingleLineEntity("")).toString(columnWidth).also(sb::append)
+            val rowHeight = rowHeights[row]!!
+            val rowLines = List(rowHeight) { StringBuilder() }
+
+            var column = minColumn
+            while (column <= maxColumn) {
+                val entity = entries[column to row] ?: SingleLineEntity("")
+
+                val columnWidth = if (entity.spanTwoColumns) {
+                    columnWidths[column] + columnWidths[column + 1]
+                } else {
+                    columnWidths[column]
+                }
+
+                entity.toLines(columnWidth, rowHeight).forEachIndexed { i, line -> rowLines[i].append(line) }
+                if (entity.spanTwoColumns) {
+                    column++
+                }
+                column++
+            }
+            rowLines.forEachIndexed { i, line ->
+                sb.append(line)
+                if (i < rowLines.size - 1) {
+                    sb.append("\n")
+                }
             }
             if (row != minRow) {
                 sb.append("\n")
@@ -203,6 +242,9 @@ class PrintMatrixIterator(private val printMatrix: PrintMatrix) {
         printMatrix.put(column, row, verticalConnection)
         row++
         printMatrix.put(column, row, item)
+        if (item.spanTwoColumns) {
+            column++
+        }
     }
 
     fun addPartner(item: PrintMatrixEntity) {
@@ -213,24 +255,38 @@ class PrintMatrixIterator(private val printMatrix: PrintMatrix) {
     }
 }
 
-interface PrintMatrixEntity {
-    fun width(): Int
-    fun toString(padTo: Int): String
+abstract class PrintMatrixEntity(var spanTwoColumns: Boolean = false) {
+    abstract fun width(): Int
+
+    abstract fun height(): Int
+    abstract fun toLines(padToWidth: Int, padToHeight: Int): List<String>
 }
 
-data class SingleLineEntity(private val entity: String) : PrintMatrixEntity {
+data class SingleLineEntity(private val entity: String) :
+    PrintMatrixEntity() {
     companion object {
         val verticalConnection = SingleLineEntity("|")
-        val horizontalConnection = SingleLineEntity(" - ")
+        val horizontalConnection = SingleLineEntity("-")
     }
 
     override fun width(): Int = entity.length
-    override fun toString(padTo: Int) = entity.padTo(padTo)
+    override fun height() = 1
+    override fun toLines(padToWidth: Int, padToHeight: Int) =
+        listOf(entity.padTo(padToWidth)).padTo(padToHeight, " ".repeat(padToWidth))
 }
 
-data class MultiLineEntity(private val lines: List<String>) : PrintMatrixEntity {
-    override fun width() = lines.maxOf(String::length)
-    override fun toString(padTo: Int) = lines.joinToString("\n") { it.padTo(padTo) }
+data class MultiLineEntity(private val lines: List<String>, private val margin: Int = 1) : PrintMatrixEntity() {
+    private val marginSum = margin * 2
+    override fun width() = lines.maxOf(String::length) + 2 + marginSum
+    override fun height() = lines.size + 2
+
+    override fun toLines(padToWidth: Int, padToHeight: Int): List<String> {
+        val marginString = " ".repeat(margin)
+        val topAndBottomLine = "$marginString+${"-".repeat(padToWidth - 2 - marginSum)}+$marginString"
+        return listOf(topAndBottomLine) +
+                lines.map { "$marginString|${it.padTo(padToWidth - 2 - marginSum)}|$marginString" } +
+                listOf(topAndBottomLine)
+    }
 }
 
 fun PrintMatrix.iterator() = PrintMatrixIterator(this)
@@ -240,13 +296,19 @@ fun List<GradeRelationship.RelationshipPart>.toPrintableMatrix(): PrintMatrix {
     val iterator = printMatrix.iterator()
 
     iterator.setCurrent(MultiLineEntity(listOf(first().person.names.first().name)))
-    drop(1).forEach { relationship ->
+    drop(1).forEachIndexed { iMinus1, relationship ->
+        val i = iMinus1 + 1
         val entity = MultiLineEntity(listOf(relationship.person.names.first().name))
         when (relationship.roleInRelationship) {
-            GradeRelationship.RoleInRelationship.PARENT -> iterator.addParent(entity)
-            GradeRelationship.RoleInRelationship.CHILD -> iterator.addChild(entity)
-            GradeRelationship.RoleInRelationship.PARTNER -> iterator.addPartner(entity)
-            GradeRelationship.RoleInRelationship.UNKNOWN -> throw IllegalStateException(
+            PARENT -> {
+                val nextRelationshipRole = getOrNull(i + 1)?.roleInRelationship
+                entity.spanTwoColumns = nextRelationshipRole == CHILD
+                iterator.addParent(entity)
+            }
+
+            CHILD -> iterator.addChild(entity)
+            PARTNER -> iterator.addPartner(entity)
+            UNKNOWN -> throw IllegalStateException(
                 "Person ${relationship.person.names.first().name} has relationship role UNKNOWN"
             )
         }

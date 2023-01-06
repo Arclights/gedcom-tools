@@ -183,10 +183,6 @@ class GradeRelationshipTest {
             GradeRelationship.RoleInRelationship.PARENT,
             Individual(id = IndividualId("3"), names = listOf(IndividualName("person3")))
         )
-        val rp4 = GradeRelationship.RelationshipPart(
-            GradeRelationship.RoleInRelationship.PARTNER,
-            Individual(id = IndividualId("4"), names = listOf(IndividualName("person4")))
-        )
         val rp5 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.CHILD,
             Individual(id = IndividualId("5"), names = listOf(IndividualName("person5")))
@@ -228,7 +224,6 @@ class GradeRelationshipTest {
             rp1,
             rp2,
             rp3,
-            rp4,
             rp5,
             rp6,
             rp7,
@@ -244,19 +239,29 @@ class GradeRelationshipTest {
         val actual = list.toPrintableString()
 
         // Then
-        val expected = """                    person8 - person9 
-                       |         |    
-                       |         |    
-person3 - person4   person7   person10
-   |         |         |         |    
-   |         |         |         |    
-person2   person5 - person6   person11
-   |                             |    
-   |                             |    
-person1                       person12
-                                 |    
-                                 |    
-                              person13"""
+        val expected = """                        +-------+   +--------+ 
+                        |person8| - |person9 | 
+                        +-------+   +--------+ 
+                            |           |      
+                            |           |      
+ +------------------+   +-------+   +--------+ 
+ |     person3      |   |person7|   |person10| 
+ +------------------+   +-------+   +--------+ 
+     |          |           |           |      
+     |          |           |           |      
+ +-------+  +-------+   +-------+   +--------+ 
+ |person2|  |person5| - |person6|   |person11| 
+ +-------+  +-------+   +-------+   +--------+ 
+     |                                  |      
+     |                                  |      
+ +-------+                          +--------+ 
+ |person1|                          |person12| 
+ +-------+                          +--------+ 
+                                        |      
+                                        |      
+                                    +--------+ 
+                                    |person13| 
+                                    +--------+ """
 
         assertThat(actual).isEqualTo(expected)
     }
