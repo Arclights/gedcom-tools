@@ -106,7 +106,7 @@ data class SourceCitation(
     val qualityAssessment: QUAY?
 ) {
     data class Data(
-        val date: LocalDate?,
+        val date: DateValue?,
         val text: String?
     )
 }
@@ -141,7 +141,7 @@ data class FamilyEventDetail(
 
 data class EvenDetail(
     val type: String? = null,
-    val date: LocalDate? = null,
+    val date: DateValue? = null,
     val place: Place? = null,
     val address: Address? = null,
 //    val responsibleAgency
@@ -256,7 +256,7 @@ data class Source(
     ) {
         data class Event(
             val type: String,
-            val date: LocalDate? = null,
+            val date: DateValue? = null,
             val place: String? = null
         )
     }
@@ -266,6 +266,70 @@ data class Note(
     val id: String,
     val text: String
 )
+
+interface DateValue
+
+data class Date(
+    val dateCalendarEscape: Calendars?,
+    val dateCalendar: DateCalendar
+) : DateValue
+
+interface DateCalendar
+
+data class GregorianCalendar(
+    val day: Int? = null,
+    val month: Month? = null,
+    val year: Year? = null,
+    val beforeCommonEra: Boolean = false
+) : DateCalendar {
+    enum class Month {
+        JAN,
+        FEB,
+        MAR,
+        APR,
+        MAY,
+        JUN,
+        JUL,
+        AUG,
+        SEP,
+        OCT,
+        NOV,
+        DEC
+    }
+}
+
+data class Year(
+    val newStyle: Int,
+    val oldStyle: Int
+)
+
+data class DatePeriod(
+    val from: Date,
+    val to: Date
+) : DateValue
+
+interface DateRange : DateValue
+data class DateRangeBefore(val date: Date) : DateRange
+data class DateRangeAfter(val date: Date) : DateRange
+data class DateRangeBetween(val date1: Date, val date2: Date) : DateRange
+
+data class DateApproximated(val date: Date) : DateValue
+
+data class DatePhrase(val text: String) : DateValue
+
+data class DatePhraseExt(
+    val int: Int,
+    val date: Date,
+    val datePhrase: DatePhrase
+) : DateValue
+
+enum class Calendars(val id: String) {
+    HEBREW("@#DHEBREW@"),
+    FRENCH("@#DFRENCH R@"),
+    GREGORIAN("@#DGREGORIAN@"),
+    JULIAN("@#DJULIAN@"),
+    UNKNOWN("@#DUNKNOWN@")
+}
 
 @JvmInline
 value class IndividualId(val value: String)

@@ -61,7 +61,14 @@ class GedcomParserKtTest {
                                     FamilyEventType.MARRIAGE,
                                     FamilyEventDetail(
                                         detail = EvenDetail(
-//                                            date =
+                                            date = Date(
+                                                Calendars.GREGORIAN,
+                                                GregorianCalendar(
+                                                    day = 27,
+                                                    month = GregorianCalendar.Month.NOV,
+                                                    year = Year(1911, 1911)
+                                                )
+                                            ),
                                             place = Place(
                                                 name = "Vindelns prästgård, Degerfors kommun, Sverige"
                                             ),

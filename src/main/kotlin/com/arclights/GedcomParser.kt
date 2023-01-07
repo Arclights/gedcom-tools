@@ -228,7 +228,7 @@ fun parseBirthEvent(lineIterator: LineIterator): BirthEvent {
     var familyId: FamilyGroupId? = null
     var age: String? = null
     var eventOrFactClassification: String? = null
-    var date: LocalDate? = null
+    var date: DateValue? = null
     var place: Place? = null
     var address: Address? = null
     val notes = mutableListOf<String>()
@@ -240,6 +240,7 @@ fun parseBirthEvent(lineIterator: LineIterator): BirthEvent {
         *getIndividualEventDetailTagParsers(
             { age = it },
             { eventOrFactClassification = it },
+            { date = it },
             { place = it },
             { address = it },
             notes,
@@ -269,7 +270,7 @@ fun parseBirthEvent(lineIterator: LineIterator): BirthEvent {
 fun parseDeathEvent(confirmed: Boolean, lineIterator: LineIterator): DeathEvent {
     var age: String? = null
     var eventOrFactClassification: String? = null
-    var date: LocalDate? = null
+    var date: DateValue? = null
     var place: Place? = null
     var address: Address? = null
     val notes = mutableListOf<String>()
@@ -280,6 +281,7 @@ fun parseDeathEvent(confirmed: Boolean, lineIterator: LineIterator): DeathEvent 
         *getIndividualEventDetailTagParsers(
             { age = it },
             { eventOrFactClassification = it },
+            { date = it },
             { place = it },
             { address = it },
             notes,
@@ -310,7 +312,7 @@ fun parseChristeningEvent(confirmed: Boolean, lineIterator: LineIterator): Chris
     var familyId: FamilyGroupId? = null
     var age: String? = null
     var eventOrFactClassification: String? = null
-    var date: LocalDate? = null
+    var date: DateValue? = null
     var place: Place? = null
     var address: Address? = null
     val notes = mutableListOf<String>()
@@ -322,6 +324,7 @@ fun parseChristeningEvent(confirmed: Boolean, lineIterator: LineIterator): Chris
         *getIndividualEventDetailTagParsers(
             { age = it },
             { eventOrFactClassification = it },
+            { date = it },
             { place = it },
             { address = it },
             notes,
@@ -350,20 +353,22 @@ fun parseChristeningEvent(confirmed: Boolean, lineIterator: LineIterator): Chris
 }
 
 fun getIndividualEventDetailTagParsers(
-    ageAssigner: (String) -> Unit,
-    eventOrFactClassificationAssigner: (String) -> Unit,
-    placeAssigner: (Place) -> Unit,
-    addressAssigner: (Address) -> Unit,
+    assignAge: (String) -> Unit,
+    assignEventOrFactClassification: (String) -> Unit,
+    assignDate: (DateValue) -> Unit,
+    assignPlace: (Place) -> Unit,
+    assignAddress: (Address) -> Unit,
     notes: MutableList<String>,
     sourceCitations: MutableList<SourceCitation>,
     multimediaLinks: MutableList<MultimediaLink>,
     lineIterator: LineIterator
 ) = arrayOf(
-    TagParser("AGE", ageAssigner),
+    TagParser("AGE", assignAge),
     * getEventDetailTagParsers(
-        eventOrFactClassificationAssigner,
-        placeAssigner,
-        addressAssigner,
+        assignEventOrFactClassification,
+        assignDate,
+        assignPlace,
+        assignAddress,
         notes,
         sourceCitations,
         multimediaLinks,
@@ -427,7 +432,7 @@ fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
     var husbandAge: Int? = null
     var wifeAge: Int? = null
     var eventOrFactClassification: String? = null
-    var date: LocalDate? = null
+    var date: DateValue? = null
     var place: Place? = null
     var address: Address? = null
     val notes = mutableListOf<String>()
@@ -439,6 +444,7 @@ fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
         TagParser("WIFE") { wifeAge = it.toInt() },
         *getEventDetailTagParsers(
             { eventOrFactClassification = it },
+            { date = it },
             { place = it },
             { address = it },
             notes,
@@ -467,18 +473,19 @@ fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
 }
 
 fun getEventDetailTagParsers(
-    eventOrFactClassificationAssigner: (String) -> Unit,
-    placeAssigner: (Place) -> Unit,
-    addressAssigner: (Address) -> Unit,
+    assignEventOrFactClassification: (String) -> Unit,
+    assignDate: (DateValue) -> Unit,
+    assignPlace: (Place) -> Unit,
+    assignAddress: (Address) -> Unit,
     notes: MutableList<String>,
     sourceCitations: MutableList<SourceCitation>,
     multimediaLinks: MutableList<MultimediaLink>,
     lineIterator: LineIterator
 ) = arrayOf(
-    TagParser("TYPE", eventOrFactClassificationAssigner),
-//            "DATE"->
-    TagParser("PLAC") { name -> parserPlace(name, lineIterator).let(placeAssigner) },
-    TagParser("ADDR") { parseAddress(lineIterator).let(addressAssigner) },
+    TagParser("TYPE", assignEventOrFactClassification),
+    dateParser(assignDate),
+    TagParser("PLAC") { name -> parserPlace(name, lineIterator).let(assignPlace) },
+    TagParser("ADDR") { parseAddress(lineIterator).let(assignAddress) },
     noteParser(notes),
     sourceCitationParser(sourceCitations, lineIterator),
     multimediaLinkParser(multimediaLinks)
@@ -593,11 +600,11 @@ fun parseSourceCitation(id: String, lineIterator: LineIterator): SourceCitation 
 }
 
 fun parseSourceCitationData(lineIterator: LineIterator): SourceCitation.Data {
-    var date: LocalDate? = null
+    var date: DateValue? = null
     var text: String? = null
 
     lineIterator.parseByTag(
-        //"DATE"->
+        dateParser { date = it },
         TagParser("TEXT") { text = it }
     )
 
@@ -689,11 +696,11 @@ fun parseSourceData(lineIterator: LineIterator): Source.Data {
 }
 
 fun parseSourceDataEvent(type: String, lineIterator: LineIterator): Source.Data.Event {
-    var date: LocalDate? = null
+    var date: DateValue? = null
     var place: String? = null
 
     lineIterator.parseByTag(
-//        DATE
+        dateParser { date = it },
         TagParser("PLAC") { place = it }
     )
 
@@ -703,6 +710,121 @@ fun parseSourceDataEvent(type: String, lineIterator: LineIterator): Source.Data.
         place
     )
 }
+
+fun parseDateValue(dateString: String): DateValue =
+    dateString
+        .split(" ")
+        .let { dateParts ->
+            parseDate(dateParts)
+                ?: parseDatePeriod(dateParts)
+                ?: parseDateRange(dateParts)
+                ?: parseDateApproximated(dateParts)
+                ?: parseDatePhraseExt(dateParts)
+                ?: DatePhrase(dateString)
+        }
+
+fun parseDatePeriod(dateParts: List<String>): DatePeriod? {
+    // TODO
+    return null
+}
+
+fun parseDateRange(dateParts: List<String>): DateRange? {
+    // TODO
+    return null
+}
+
+fun parseDateApproximated(dateParts: List<String>): DateApproximated? {
+    // TODO
+    return null
+}
+
+fun parseDatePhraseExt(dateParts: List<String>): DatePhraseExt? {
+    // TODO
+    return null
+}
+
+fun parseDate(dateParts: List<String>): Date? {
+    val yearRegex = """^(\d{3,4})(?: (BCE|BC|B\.C\.))?$""".toRegex()
+    val monthYearRegex = """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})$""".toRegex()
+    val dayMonthYearRegex = """^(\d{1,2}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})$""".toRegex()
+    val dayMonthRegex = """^(\d{1,2}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""".toRegex()
+    val monthDualYearRegex = """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})/(\d{3,4})$""".toRegex()
+    val dayMonthDualYearRegex =
+        """^(\d{1,2}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})/(\d{3,4})$""".toRegex()
+    return dateParts
+        .dropWhile { it == Calendars.GREGORIAN.id }
+        .joinToString(" ")
+        .parseByPattern(
+            RegexParser(yearRegex) { (year, bc) ->
+                Date(
+                    Calendars.GREGORIAN,
+                    GregorianCalendar(year = Year(year.toInt(), year.toInt()), beforeCommonEra = bc.isEmpty().not())
+                )
+            },
+            RegexParser(monthYearRegex) { (month, year) ->
+                Date(
+                    Calendars.GREGORIAN,
+                    GregorianCalendar(
+                        month = GregorianCalendar.Month.valueOf(month),
+                        year = Year(year.toInt(), year.toInt())
+                    )
+                )
+            },
+            RegexParser(dayMonthYearRegex) { (day, month, year) ->
+                Date(
+                    Calendars.GREGORIAN,
+                    GregorianCalendar(
+                        day = day.toInt(),
+                        month = GregorianCalendar.Month.valueOf(month),
+                        year = Year(year.toInt(), year.toInt())
+                    )
+                )
+            },
+            RegexParser(dayMonthRegex) { (day, month) ->
+                Date(
+                    Calendars.GREGORIAN,
+                    GregorianCalendar(
+                        day = day.toInt(),
+                        month = GregorianCalendar.Month.valueOf(month)
+                    )
+                )
+            },
+            RegexParser(monthDualYearRegex) { (month, oldStyleYear, newStyleYear) ->
+                Date(
+                    Calendars.GREGORIAN,
+                    GregorianCalendar(
+                        month = GregorianCalendar.Month.valueOf(month),
+                        year = Year(oldStyleYear.toInt(), newStyleYear.toInt())
+                    )
+                )
+            },
+            RegexParser(dayMonthDualYearRegex) { (day, month, oldStyleYear, newStyleYear) ->
+                Date(
+                    Calendars.GREGORIAN,
+                    GregorianCalendar(
+                        day = day.toInt(),
+                        month = GregorianCalendar.Month.valueOf(month),
+                        year = Year(oldStyleYear.toInt(), newStyleYear.toInt())
+                    )
+                )
+            }
+        )
+}
+
+fun <T> String.parseByPattern(vararg parsers: RegexParser<T>): T? {
+    for ((regex, parser) in parsers) {
+        regex.matchEntire(this)
+            ?.let {
+                return parser(it.destructured)
+            }
+    }
+    return null
+}
+
+data class RegexParser<T>(
+    val regex: Regex,
+    val parser: (result: MatchResult.Destructured) -> T
+)
 
 fun getByteOrderMark(lines: List<String>): Char = lines[0][0]
 
@@ -784,6 +906,9 @@ private fun multimediaLinkParser(multimediaLinks: MutableList<MultimediaLink>) =
 
 private fun sourceCitationParser(sourceCitations: MutableList<SourceCitation>, lineIterator: LineIterator) =
     TagParser("SOUR") { id -> sourceCitations.add(parseSourceCitation(id, lineIterator)) }
+
+private fun dateParser(assignDate: (DateValue) -> Unit) =
+    TagParser("DATE") { dateString -> assignDate(parseDateValue(dateString)) }
 
 data class TagParser(
     val tag: String,
