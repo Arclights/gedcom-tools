@@ -3,38 +3,14 @@ package com.arclights.commands
 import com.arclights.Individual
 import com.arclights.IndividualId
 import com.arclights.IndividualName
-import com.arclights.commands.SingleLineEntity.Companion.horizontalConnection
-import com.arclights.commands.SingleLineEntity.Companion.verticalConnection
+import com.arclights.MultiLineEntity
+import com.arclights.PrintMatrix
+import com.arclights.SingleLineEntity.Companion.horizontalConnection
+import com.arclights.SingleLineEntity.Companion.verticalConnection
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.Arguments
-import org.junit.jupiter.params.provider.MethodSource
-import java.util.stream.Stream
 
 class GradeRelationshipTest {
-    @ParameterizedTest
-    @MethodSource
-    fun padsStringToCorrectWidth(input: String, padding: Int, expected: String) {
-        // When
-        val actual = input.padTo(padding)
-
-        // Then
-        assertThat(actual).isEqualTo(expected)
-    }
-
-    companion object {
-        @JvmStatic
-        fun padsStringToCorrectWidth(): Stream<Arguments> = Stream.of(
-            Arguments.of("", 7, "       "),
-            Arguments.of("|", 7, "   |   "),
-            Arguments.of("-", 7, "   -   "),
-            Arguments.of("ll", 6, "  ll  "),
-            Arguments.of("ll", 5, " ll  "),
-            Arguments.of("lll", 6, " lll  ")
-        )
-    }
-
     @Test
     fun canBuildCorrectMatrix() {
         // Given
