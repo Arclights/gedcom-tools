@@ -21,7 +21,7 @@ data class Individual(
     val notes: List<String> = listOf(),
     val sourceCitations: List<SourceCitation> = listOf(),
     val multimediaLinks: List<MultimediaLink> = listOf()
-){
+) {
     override fun toString(): String {
         return "${id.value} ${names.first().name}"
     }
@@ -58,23 +58,29 @@ interface Association // Not implemented yet
 interface IndividualEvent
 
 data class BirthEvent(
-    val details: IndividualEventDetails,
-    val familyId: FamilyGroupId
+    val details: IndividualEventDetails? = null,
+    val familyId: FamilyGroupId? = null
 ) : IndividualEvent
 
 data class ChristeningEvent(
-    val details: IndividualEventDetails,
-    val familyId: FamilyGroupId
+    val confirmed: Boolean,
+    val details: IndividualEventDetails? = null,
+    val familyId: FamilyGroupId? = null
+) : IndividualEvent
+
+data class DeathEvent(
+    val confirmed: Boolean,
+    val details: IndividualEventDetails? = null
 ) : IndividualEvent
 
 data class GeneralIndividualEvent(
-    val type: IndividualEventType,
+    val type: String,
     val details: IndividualEventDetails
 ) : IndividualEvent
 
 data class IndividualEventDetails(
     val details: EvenDetail,
-    val age: Int
+    val age: String? // Extend, see AGE_AT_EVENT specification
 )
 
 data class FamilyGroup(

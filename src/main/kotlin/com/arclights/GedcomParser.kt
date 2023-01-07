@@ -88,8 +88,17 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
         noteParser(notes),
         multimediaLinkParser(multimediaLinks),
         sourceCitationParser(sourceCitations, lineIterator),
-//                "CHR",
-//                "DEAT",
+        TagParser("BIRT") { events.add(parseBirthEvent(lineIterator)) },
+        TagParser("DEAT") { events.add(parseDeathEvent(it.toConfirmed(), lineIterator)) },
+        TagParser("CHR") {
+            try {
+                it.toConfirmed()
+            } catch (e: IllegalArgumentException) {
+                // For some reason, MyHeritage sometimes sets a string in the Y/NULL place
+                logger.error("Invalid line '${lineIterator.current()}', cannot parse christening event", e)
+                null
+            }?.let { confirmed -> events.add(parseChristeningEvent(confirmed, lineIterator)) }
+        },
 //                "BURI",
 //                "CREM",
 //                "ADOP",
@@ -120,7 +129,12 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
 //                "RESI",
 //                "TITL",
 //                "FACT" -> parseattributes
-        TagParser("FAMC") { familyId -> parseChildToFamilyLink(familyId, lineIterator).let(childToFamilies::add) },
+        TagParser("FAMC") { familyId ->
+            parseChildToFamilyLink(
+                familyId,
+                lineIterator
+            ).let(childToFamilies::add)
+        },
         TagParser("FAMS") { familyId -> parseSpouseToFamilyLink(familyId, lineIterator).let(spouseToFamilies::add) }
 //                "ASSO" -> parseAssociation
 //                "CHAN" -> parseChangeDate
@@ -140,6 +154,7 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
         sourceCitations,
         multimediaLinks
     ).also { println(it) }
+        .also { println(it.events) }
 }
 
 fun parsePersonalName(name: String, lineIterator: LineIterator): IndividualName {
@@ -209,6 +224,153 @@ private fun parseSpouseToFamilyLink(familyId: String, lineIterator: LineIterator
     )
 }
 
+fun parseBirthEvent(lineIterator: LineIterator): BirthEvent {
+    var familyId: FamilyGroupId? = null
+    var age: String? = null
+    var eventOrFactClassification: String? = null
+    var date: LocalDate? = null
+    var place: Place? = null
+    var address: Address? = null
+    val notes = mutableListOf<String>()
+    val sourceCitations = mutableListOf<SourceCitation>()
+    val multimediaLinks = mutableListOf<MultimediaLink>()
+
+    lineIterator.parseByTag(
+        TagParser("FAMC") { familyId = FamilyGroupId(it) },
+        *getIndividualEventDetailTagParsers(
+            { age = it },
+            { eventOrFactClassification = it },
+            { place = it },
+            { address = it },
+            notes,
+            sourceCitations,
+            multimediaLinks,
+            lineIterator
+        )
+    )
+
+    return BirthEvent(
+        IndividualEventDetails(
+            EvenDetail(
+                eventOrFactClassification,
+                date,
+                place,
+                address,
+                notes,
+                sourceCitations,
+                multimediaLinks
+            ),
+            age
+        ),
+        familyId
+    )
+}
+
+fun parseDeathEvent(confirmed: Boolean, lineIterator: LineIterator): DeathEvent {
+    var age: String? = null
+    var eventOrFactClassification: String? = null
+    var date: LocalDate? = null
+    var place: Place? = null
+    var address: Address? = null
+    val notes = mutableListOf<String>()
+    val sourceCitations = mutableListOf<SourceCitation>()
+    val multimediaLinks = mutableListOf<MultimediaLink>()
+
+    lineIterator.parseByTag(
+        *getIndividualEventDetailTagParsers(
+            { age = it },
+            { eventOrFactClassification = it },
+            { place = it },
+            { address = it },
+            notes,
+            sourceCitations,
+            multimediaLinks,
+            lineIterator
+        )
+    )
+
+    return DeathEvent(
+        confirmed,
+        IndividualEventDetails(
+            EvenDetail(
+                eventOrFactClassification,
+                date,
+                place,
+                address,
+                notes,
+                sourceCitations,
+                multimediaLinks
+            ),
+            age
+        )
+    )
+}
+
+fun parseChristeningEvent(confirmed: Boolean, lineIterator: LineIterator): ChristeningEvent {
+    var familyId: FamilyGroupId? = null
+    var age: String? = null
+    var eventOrFactClassification: String? = null
+    var date: LocalDate? = null
+    var place: Place? = null
+    var address: Address? = null
+    val notes = mutableListOf<String>()
+    val sourceCitations = mutableListOf<SourceCitation>()
+    val multimediaLinks = mutableListOf<MultimediaLink>()
+
+    lineIterator.parseByTag(
+        TagParser("FAMC") { familyId = FamilyGroupId(it) },
+        *getIndividualEventDetailTagParsers(
+            { age = it },
+            { eventOrFactClassification = it },
+            { place = it },
+            { address = it },
+            notes,
+            sourceCitations,
+            multimediaLinks,
+            lineIterator
+        )
+    )
+
+    return ChristeningEvent(
+        confirmed,
+        IndividualEventDetails(
+            EvenDetail(
+                eventOrFactClassification,
+                date,
+                place,
+                address,
+                notes,
+                sourceCitations,
+                multimediaLinks
+            ),
+            age
+        ),
+        familyId
+    )
+}
+
+fun getIndividualEventDetailTagParsers(
+    ageAssigner: (String) -> Unit,
+    eventOrFactClassificationAssigner: (String) -> Unit,
+    placeAssigner: (Place) -> Unit,
+    addressAssigner: (Address) -> Unit,
+    notes: MutableList<String>,
+    sourceCitations: MutableList<SourceCitation>,
+    multimediaLinks: MutableList<MultimediaLink>,
+    lineIterator: LineIterator
+) = arrayOf(
+    TagParser("AGE", ageAssigner),
+    * getEventDetailTagParsers(
+        eventOrFactClassificationAssigner,
+        placeAssigner,
+        addressAssigner,
+        notes,
+        sourceCitations,
+        multimediaLinks,
+        lineIterator
+    )
+)
+
 fun parseFamilyGroup(id: String, lineIterator: LineIterator): FamilyGroup {
     println("Parsing family group")
 
@@ -264,7 +426,6 @@ fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
 
     var husbandAge: Int? = null
     var wifeAge: Int? = null
-    var eventDetail: EvenDetail? = null
     var eventOrFactClassification: String? = null
     var date: LocalDate? = null
     var place: Place? = null
@@ -276,13 +437,15 @@ fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
     lineIterator.parseByTag(
         TagParser("HUSB") { husbandAge = it.toInt() },
         TagParser("WIFE") { wifeAge = it.toInt() },
-        TagParser("TYPE") { eventOrFactClassification = it },
-//            "DATE"->
-        TagParser("PLAC") { name -> place = parserPlace(name, lineIterator) },
-        TagParser("ADDR") { address = parseAddress(lineIterator) },
-        noteParser(notes),
-        sourceCitationParser(sourceCitations, lineIterator),
-        multimediaLinkParser(multimediaLinks)
+        *getEventDetailTagParsers(
+            { eventOrFactClassification = it },
+            { place = it },
+            { address = it },
+            notes,
+            sourceCitations,
+            multimediaLinks,
+            lineIterator
+        )
     )
 
     return FamilyEvent(
@@ -302,6 +465,24 @@ fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
         )
     )
 }
+
+fun getEventDetailTagParsers(
+    eventOrFactClassificationAssigner: (String) -> Unit,
+    placeAssigner: (Place) -> Unit,
+    addressAssigner: (Address) -> Unit,
+    notes: MutableList<String>,
+    sourceCitations: MutableList<SourceCitation>,
+    multimediaLinks: MutableList<MultimediaLink>,
+    lineIterator: LineIterator
+) = arrayOf(
+    TagParser("TYPE", eventOrFactClassificationAssigner),
+//            "DATE"->
+    TagParser("PLAC") { name -> parserPlace(name, lineIterator).let(placeAssigner) },
+    TagParser("ADDR") { parseAddress(lineIterator).let(addressAssigner) },
+    noteParser(notes),
+    sourceCitationParser(sourceCitations, lineIterator),
+    multimediaLinkParser(multimediaLinks)
+)
 
 fun parserPlace(name: String, lineIterator: LineIterator): Place {
     var latitude: Double? = null
@@ -619,5 +800,11 @@ data class ParseContainer(
     val individuals: MutableCollection<Individual> = mutableListOf(),
     val sources: MutableList<Source> = mutableListOf()
 )
+
+fun String?.toConfirmed() = when (this) {
+    "Y" -> true
+    "" -> false
+    else -> throw IllegalArgumentException("'$this' is not a valid confirmed string")
+}
 
 fun Char.notSpace() = this != ' '
