@@ -1,14 +1,20 @@
 package com.arclights.commands
 
+import com.arclights.BirthEvent
 import com.arclights.ChildToFamilyLink
+import com.arclights.Color
+import com.arclights.ColoredString
+import com.arclights.DeathEvent
 import com.arclights.FamilyGroup
 import com.arclights.Gedcom
 import com.arclights.Individual
 import com.arclights.MultiLineEntity
 import com.arclights.PrintMatrix
 import com.arclights.PrintMatrixEntity
+import com.arclights.QUAY
 import com.arclights.SingleLineEntity.Companion.horizontalConnection
 import com.arclights.SingleLineEntity.Companion.verticalConnection
+import com.arclights.SourceCitation
 import com.arclights.SpouseToFamilyLink
 import com.arclights.bfs
 import com.arclights.commands.GradeRelationship.RoleInRelationship.CHILD
@@ -159,10 +165,10 @@ fun List<GradeRelationship.RelationshipPart>.toPrintableMatrix(): PrintMatrix {
     val printMatrix = PrintMatrix()
     val builder = printMatrix.builder()
 
-    builder.setCurrent(MultiLineEntity(listOf(first().person.names.first().name)))
+    builder.setCurrent(first().person.toPrintMatrixEntity())
     drop(1).forEachIndexed { iMinus1, relationship ->
         val i = iMinus1 + 1
-        val entity = MultiLineEntity(listOf(relationship.person.names.first().name))
+        val entity = relationship.person.toPrintMatrixEntity()
         when (relationship.roleInRelationship) {
             PARENT -> {
                 val nextRelationshipRole = getOrNull(i + 1)?.roleInRelationship
@@ -181,7 +187,81 @@ fun List<GradeRelationship.RelationshipPart>.toPrintableMatrix(): PrintMatrix {
     return printMatrix
 }
 
+fun Individual.toPrintMatrixEntity(): PrintMatrixEntity {
+    val (birthGrade, deathGrade, minGrade, maxGrade, averageGrade) = getSourceGrade()
+    return MultiLineEntity(
+        listOf(
+            ColoredString(names.first().name),
+            ColoredString("Birth: $birthGrade", birthGrade.toColor()),
+            ColoredString("Death: $deathGrade", deathGrade.toColor())
+        ),
+        color = averageGrade.toColor()
+    )
+}
+
+private fun QUAY.toColor() = when (this) {
+    QUAY.UNRELIABLE -> Color.RED
+    QUAY.QUESTIONABLE -> Color.YELLOW
+    QUAY.SECONDARY -> Color.YELLOW
+    QUAY.PRIMARY -> Color.GREEN
+    QUAY.DIRECT -> Color.GREEN
+}
+
 fun List<GradeRelationship.RelationshipPart>.toPrintableString(): String {
     val matrix = toPrintableMatrix()
     return matrix.toString()
+}
+
+data class IndividualGrade(
+    val birthGrade: QUAY,
+    val deathGrade: QUAY,
+    val minGrade: QUAY,
+    val maxGrade: QUAY,
+    val averageGrade: QUAY
+)
+
+fun Individual.getSourceGrade(): IndividualGrade {
+    val birthSourceGrade = events
+        .firstOrNull { it is BirthEvent }
+        ?.let { it as BirthEvent }
+        ?.details
+        ?.details
+        ?.sourceCitations
+        ?.mapNotNull(SourceCitation::qualityAssessment)
+        ?.maxByOrNull(QUAY::value)
+        ?: QUAY.UNRELIABLE
+
+    val deathSourceGrade = events
+        .firstOrNull { it is DeathEvent }
+        ?.let { it as DeathEvent }
+        ?.details
+        ?.details
+        ?.sourceCitations
+        ?.mapNotNull(SourceCitation::qualityAssessment)
+        ?.maxByOrNull(QUAY::value)
+        ?: QUAY.UNRELIABLE
+
+    val minGrade = listOf(birthSourceGrade, deathSourceGrade)
+        .minOf { it.value }
+        .let { QUAY.fromValue(it) }
+        ?: QUAY.UNRELIABLE
+
+    val maxGrade = listOf(birthSourceGrade, deathSourceGrade)
+        .maxOf { it.value }
+        .let { QUAY.fromValue(it) }
+        ?: QUAY.UNRELIABLE
+
+    val averageGrade = listOf(birthSourceGrade, deathSourceGrade)
+        .sumOf { it.value }
+        .let { it / 2 }
+        .let { QUAY.fromValue(it) }
+        ?: QUAY.UNRELIABLE
+
+    return IndividualGrade(
+        birthSourceGrade,
+        deathSourceGrade,
+        minGrade,
+        maxGrade,
+        averageGrade
+    )
 }

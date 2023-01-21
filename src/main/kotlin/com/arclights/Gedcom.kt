@@ -223,11 +223,12 @@ enum class AttributeType(val tagName: String) {
     }
 }
 
-enum class QUAY(private val value: Int) {
+enum class QUAY(val value: Int) {
     UNRELIABLE(0),
     QUESTIONABLE(1),
     SECONDARY(2),
-    PRIMARY(3);
+    PRIMARY(3),
+    DIRECT(4); // Used by MyHeritage
 
     companion object {
         fun fromValue(value: Int) = values().firstOrNull { it.value == value }
@@ -296,6 +297,13 @@ data class GregorianCalendar(
         NOV,
         DEC
     }
+
+    override fun toString() = listOfNotNull(
+        day?.toString(),
+        month,
+        year?.newStyle?.toString(),
+        if (beforeCommonEra) "BC" else null
+    ).joinToString(" ")
 }
 
 data class Year(
