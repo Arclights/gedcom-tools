@@ -21,6 +21,19 @@ class GedcomParserKtTest {
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected)
     }
 
+    @ParameterizedTest
+    @MethodSource
+    fun mergeOrphanedLinesMergesLinesWithoutALevelNumberIntoThePreviousLine(
+        input: List<String>,
+        expected: List<String>
+    ) {
+        // When
+        val actual = mergeOrphanedLines(input)
+
+        // Then
+        assertThat(actual).containsExactlyElementsOf(expected)
+    }
+
     companion object {
         @JvmStatic
         fun canParseFamily(): Stream<Arguments> = Stream.of(
@@ -115,6 +128,26 @@ class GedcomParserKtTest {
                         )
                     )
                 )
+            )
+        )
+
+        @JvmStatic
+        fun mergeOrphanedLinesMergesLinesWithoutALevelNumberIntoThePreviousLine(): Stream<Arguments> = Stream.of(
+            Arguments.of(
+                listOf("0 HEAD", "1 NOTE Some text", "1 RIN abc"),
+                listOf("0 HEAD", "1 NOTE Some text", "1 RIN abc")
+            ),
+            Arguments.of(
+                listOf("0 HEAD", "1 NOTE <p>Nils text</p>", "<p>Vid nitton ", "2 CONC års ålder"),
+                listOf("0 HEAD", "1 NOTE <p>Nils text</p><p>Vid nitton ", "2 CONC års ålder")
+            ),
+            Arguments.of(
+                listOf("0 HEAD", "1 NOTE first", "orphan one", "orphan two", "1 RIN abc"),
+                listOf("0 HEAD", "1 NOTE firstorphan oneorphan two", "1 RIN abc")
+            ),
+            Arguments.of(
+                listOf("-1", "0 HEAD"),
+                listOf("-1", "0 HEAD")
             )
         )
     }

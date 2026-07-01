@@ -9,6 +9,7 @@ fun parseGedcom(lines: List<String>): Gedcom {
     val lineIterator = lines
         .let(::stripByteOrderMark)
         .let(::insertDummyFirstLine)
+        .let(::mergeOrphanedLines)
         .mapIndexed(::Line)
         .also(::validateFormat)
         .mergeConcAndCont()
@@ -834,6 +835,18 @@ fun stripByteOrderMark(lines: List<String>) = lines[0]
     .let { it + lines.drop(1) }
 
 fun insertDummyFirstLine(lines: List<String>) = listOf("-1") + lines
+
+fun mergeOrphanedLines(lines: List<String>): List<String> {
+    val merged = mutableListOf<String>()
+    lines.forEach { line ->
+        if (merged.isEmpty() || line.takeWhile(Char::notSpace).toIntOrNull() != null) {
+            merged.add(line)
+        } else {
+            merged[merged.lastIndex] = merged.last() + line
+        }
+    }
+    return merged
+}
 
 data class Line(val lineNbr: Int, val line: String) {
     fun depth() = line.takeWhile(Char::notSpace).toInt()
