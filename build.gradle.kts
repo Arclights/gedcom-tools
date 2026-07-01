@@ -30,3 +30,7 @@ kotlin {
 application {
     mainClass.set("com.arclights.MainKt")
 }
+
+tasks.named<JavaExec>("run") {
+    standardInput = System.`in`
+}
