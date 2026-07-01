@@ -1,5 +1,7 @@
 package com.arclights.commands
 
+import com.arclights.Color
+import com.arclights.ColoredString
 import com.arclights.Individual
 import com.arclights.IndividualId
 import com.arclights.IndividualName
@@ -104,40 +106,131 @@ class GradeRelationshipTest {
 //        """
         val expected = PrintMatrix(
             mutableMapOf(
-                0 to 0 to MultiLineEntity(listOf("person1")),
+                0 to 0 to MultiLineEntity(
+                    listOf(
+                        ColoredString("person1"),
+                        ColoredString("Birth: UNRELIABLE", Color.RED),
+                        ColoredString("Death: UNRELIABLE", Color.RED)
+                    ),
+                    color = Color.RED
+                ),
                 0 to 1 to verticalConnection,
                 0 to 2 to verticalConnection,
-                0 to 3 to MultiLineEntity(listOf("person2")),
+                0 to 3 to MultiLineEntity(
+                    listOf(
+                        ColoredString("person2"),
+                        ColoredString("Birth: UNRELIABLE", Color.RED),
+                        ColoredString("Death: UNRELIABLE", Color.RED)
+                    ),
+                    color = Color.RED
+                ),
                 0 to 4 to verticalConnection,
                 0 to 5 to verticalConnection,
-                0 to 6 to MultiLineEntity(listOf("person3")),
+                0 to 6 to MultiLineEntity(
+                    listOf(
+                        ColoredString("person3"),
+                        ColoredString("Birth: UNRELIABLE", Color.RED),
+                        ColoredString("Death: UNRELIABLE", Color.RED)
+                    ),
+                    color = Color.RED
+                ),
                 1 to 6 to horizontalConnection,
-                2 to 6 to MultiLineEntity(listOf("person4")),
+                2 to 6 to MultiLineEntity(
+                    listOf(
+                        ColoredString("person4"),
+                        ColoredString("Birth: UNRELIABLE", Color.RED),
+                        ColoredString("Death: UNRELIABLE", Color.RED)
+                    ),
+                    color = Color.RED
+                ),
                 2 to 5 to verticalConnection,
                 2 to 4 to verticalConnection,
-                2 to 3 to MultiLineEntity(listOf("person5")),
+                2 to 3 to MultiLineEntity(
+                    listOf(
+                        ColoredString("person5"),
+                        ColoredString("Birth: UNRELIABLE", Color.RED),
+                        ColoredString("Death: UNRELIABLE", Color.RED)
+                    ),
+                    color = Color.RED
+                ),
                 3 to 3 to horizontalConnection,
-                4 to 3 to MultiLineEntity(listOf("person6")),
+                4 to 3 to MultiLineEntity(
+                    listOf(
+                        ColoredString("person6"),
+                        ColoredString("Birth: UNRELIABLE", Color.RED),
+                        ColoredString("Death: UNRELIABLE", Color.RED)
+                    ),
+                    color = Color.RED
+                ),
                 4 to 4 to verticalConnection,
                 4 to 5 to verticalConnection,
-                4 to 6 to MultiLineEntity(listOf("person7")),
+                4 to 6 to MultiLineEntity(
+                    listOf(
+                        ColoredString("person7"),
+                        ColoredString("Birth: UNRELIABLE", Color.RED),
+                        ColoredString("Death: UNRELIABLE", Color.RED)
+                    ),
+                    color = Color.RED
+                ),
                 4 to 7 to verticalConnection,
                 4 to 8 to verticalConnection,
-                4 to 9 to MultiLineEntity(listOf("person8")),
+                4 to 9 to MultiLineEntity(
+                    listOf(
+                        ColoredString("person8"),
+                        ColoredString("Birth: UNRELIABLE", Color.RED),
+                        ColoredString("Death: UNRELIABLE", Color.RED)
+                    ),
+                    color = Color.RED
+                ),
                 5 to 9 to horizontalConnection,
-                6 to 9 to MultiLineEntity(listOf("person9")),
+                6 to 9 to MultiLineEntity(
+                    listOf(
+                        ColoredString("person9"),
+                        ColoredString("Birth: UNRELIABLE", Color.RED),
+                        ColoredString("Death: UNRELIABLE", Color.RED)
+                    ),
+                    color = Color.RED
+                ),
                 6 to 8 to verticalConnection,
                 6 to 7 to verticalConnection,
-                6 to 6 to MultiLineEntity(listOf("person10")),
+                6 to 6 to MultiLineEntity(
+                    listOf(
+                        ColoredString("person10"),
+                        ColoredString("Birth: UNRELIABLE", Color.RED),
+                        ColoredString("Death: UNRELIABLE", Color.RED)
+                    ),
+                    color = Color.RED
+                ),
                 6 to 5 to verticalConnection,
                 6 to 4 to verticalConnection,
-                6 to 3 to MultiLineEntity(listOf("person11")),
+                6 to 3 to MultiLineEntity(
+                    listOf(
+                        ColoredString("person11"),
+                        ColoredString("Birth: UNRELIABLE", Color.RED),
+                        ColoredString("Death: UNRELIABLE", Color.RED)
+                    ),
+                    color = Color.RED
+                ),
                 6 to 2 to verticalConnection,
                 6 to 1 to verticalConnection,
-                6 to 0 to MultiLineEntity(listOf("person12")),
+                6 to 0 to MultiLineEntity(
+                    listOf(
+                        ColoredString("person12"),
+                        ColoredString("Birth: UNRELIABLE", Color.RED),
+                        ColoredString("Death: UNRELIABLE", Color.RED)
+                    ),
+                    color = Color.RED
+                ),
                 6 to -1 to verticalConnection,
                 6 to -2 to verticalConnection,
-                6 to -3 to MultiLineEntity(listOf("person13"))
+                6 to -3 to MultiLineEntity(
+                    listOf(
+                        ColoredString("person13"),
+                        ColoredString("Birth: UNRELIABLE", Color.RED),
+                        ColoredString("Death: UNRELIABLE", Color.RED)
+                    ),
+                    color = Color.RED
+                )
             )
         )
 
@@ -215,29 +308,40 @@ class GradeRelationshipTest {
         val actual = list.toPrintableString()
 
         // Then
-        val expected = """                        +-------+   +--------+ 
-                        |person8| - |person9 | 
-                        +-------+   +--------+ 
-                            |           |      
-                            |           |      
- +------------------+   +-------+   +--------+ 
- |     person3      |   |person7|   |person10| 
- +------------------+   +-------+   +--------+ 
-     |          |           |           |      
-     |          |           |           |      
- +-------+  +-------+   +-------+   +--------+ 
- |person2|  |person5| - |person6|   |person11| 
- +-------+  +-------+   +-------+   +--------+ 
-     |                                  |      
-     |                                  |      
- +-------+                          +--------+ 
- |person1|                          |person12| 
- +-------+                          +--------+ 
-                                        |      
-                                        |      
-                                    +--------+ 
-                                    |person13| 
-                                    +--------+ """
+        val ESC = "\u001B"
+        val expected = """                                            ${ESC}[38:5:124m+-----------------+${ESC}[0m   ${ESC}[38:5:124m+-----------------+${ESC}[0m 
+                                            ${ESC}[38:5:124m|${ESC}[0m     ${ESC}[0mperson8${ESC}[0m     ${ESC}[38:5:124m|${ESC}[0m   ${ESC}[38:5:124m|${ESC}[0m     ${ESC}[0mperson9${ESC}[0m     ${ESC}[38:5:124m|${ESC}[0m 
+                                            ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mBirth: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m - ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mBirth: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m 
+                                            ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mDeath: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m   ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mDeath: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m 
+                                            ${ESC}[38:5:124m+-----------------+${ESC}[0m   ${ESC}[38:5:124m+-----------------+${ESC}[0m 
+                                                     |                     |          
+                                                     |                     |          
+ ${ESC}[38:5:124m+--------------------------------------+${ESC}[0m   ${ESC}[38:5:124m+-----------------+${ESC}[0m   ${ESC}[38:5:124m+-----------------+${ESC}[0m 
+ ${ESC}[38:5:124m|${ESC}[0m               ${ESC}[0mperson3${ESC}[0m                ${ESC}[38:5:124m|${ESC}[0m   ${ESC}[38:5:124m|${ESC}[0m     ${ESC}[0mperson7${ESC}[0m     ${ESC}[38:5:124m|${ESC}[0m   ${ESC}[38:5:124m|${ESC}[0m    ${ESC}[0mperson10${ESC}[0m     ${ESC}[38:5:124m|${ESC}[0m 
+ ${ESC}[38:5:124m|${ESC}[0m          ${ESC}[38:5:124mBirth: UNRELIABLE${ESC}[0m           ${ESC}[38:5:124m|${ESC}[0m   ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mBirth: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m   ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mBirth: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m 
+ ${ESC}[38:5:124m|${ESC}[0m          ${ESC}[38:5:124mDeath: UNRELIABLE${ESC}[0m           ${ESC}[38:5:124m|${ESC}[0m   ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mDeath: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m   ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mDeath: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m 
+ ${ESC}[38:5:124m+--------------------------------------+${ESC}[0m   ${ESC}[38:5:124m+-----------------+${ESC}[0m   ${ESC}[38:5:124m+-----------------+${ESC}[0m 
+          |                    |                     |                     |          
+          |                    |                     |                     |          
+ ${ESC}[38:5:124m+-----------------+${ESC}[0m  ${ESC}[38:5:124m+-----------------+${ESC}[0m   ${ESC}[38:5:124m+-----------------+${ESC}[0m   ${ESC}[38:5:124m+-----------------+${ESC}[0m 
+ ${ESC}[38:5:124m|${ESC}[0m     ${ESC}[0mperson2${ESC}[0m     ${ESC}[38:5:124m|${ESC}[0m  ${ESC}[38:5:124m|${ESC}[0m     ${ESC}[0mperson5${ESC}[0m     ${ESC}[38:5:124m|${ESC}[0m   ${ESC}[38:5:124m|${ESC}[0m     ${ESC}[0mperson6${ESC}[0m     ${ESC}[38:5:124m|${ESC}[0m   ${ESC}[38:5:124m|${ESC}[0m    ${ESC}[0mperson11${ESC}[0m     ${ESC}[38:5:124m|${ESC}[0m 
+ ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mBirth: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m  ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mBirth: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m - ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mBirth: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m   ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mBirth: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m 
+ ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mDeath: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m  ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mDeath: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m   ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mDeath: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m   ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mDeath: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m 
+ ${ESC}[38:5:124m+-----------------+${ESC}[0m  ${ESC}[38:5:124m+-----------------+${ESC}[0m   ${ESC}[38:5:124m+-----------------+${ESC}[0m   ${ESC}[38:5:124m+-----------------+${ESC}[0m 
+          |                                                                |          
+          |                                                                |          
+ ${ESC}[38:5:124m+-----------------+${ESC}[0m                                              ${ESC}[38:5:124m+-----------------+${ESC}[0m 
+ ${ESC}[38:5:124m|${ESC}[0m     ${ESC}[0mperson1${ESC}[0m     ${ESC}[38:5:124m|${ESC}[0m                                              ${ESC}[38:5:124m|${ESC}[0m    ${ESC}[0mperson12${ESC}[0m     ${ESC}[38:5:124m|${ESC}[0m 
+ ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mBirth: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m                                              ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mBirth: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m 
+ ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mDeath: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m                                              ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mDeath: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m 
+ ${ESC}[38:5:124m+-----------------+${ESC}[0m                                              ${ESC}[38:5:124m+-----------------+${ESC}[0m 
+                                                                           |          
+                                                                           |          
+                                                                  ${ESC}[38:5:124m+-----------------+${ESC}[0m 
+                                                                  ${ESC}[38:5:124m|${ESC}[0m    ${ESC}[0mperson13${ESC}[0m     ${ESC}[38:5:124m|${ESC}[0m 
+                                                                  ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mBirth: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m 
+                                                                  ${ESC}[38:5:124m|${ESC}[0m${ESC}[38:5:124mDeath: UNRELIABLE${ESC}[0m${ESC}[38:5:124m|${ESC}[0m 
+                                                                  ${ESC}[38:5:124m+-----------------+${ESC}[0m """
 
         assertThat(actual).isEqualTo(expected)
     }

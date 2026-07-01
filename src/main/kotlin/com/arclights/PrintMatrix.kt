@@ -129,7 +129,7 @@ data class MultiLineEntity(
     }
 }
 
-class ColoredString(private val string: String, private val color: Color? = null) {
+data class ColoredString(private val string: String, private val color: Color? = null) {
     val length = string.length
 
     override fun toString() = Color.colorize(string, color)
