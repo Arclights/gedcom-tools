@@ -1,7 +1,5 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
-    kotlin("jvm") version "1.7.20"
+    kotlin("jvm") version "2.4.0"
     application
 }
 
@@ -14,7 +12,7 @@ repositories {
 
 dependencies {
     implementation("ch.qos.logback", "logback-classic", "1.4.5")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.0")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.4.0")
 
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter", "junit-jupiter-params", "5.0.0")
@@ -25,8 +23,8 @@ tasks.test {
     useJUnitPlatform()
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "16"
+kotlin {
+    jvmToolchain(26)
 }
 
 application {
