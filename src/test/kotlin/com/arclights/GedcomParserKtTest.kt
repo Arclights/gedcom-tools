@@ -65,6 +65,26 @@ class GedcomParserKtTest {
         assertThat(individual.notes).isEmpty()
     }
 
+    @Test
+    fun contStartsANewLineButConcDoesNot() {
+        // Given
+        val input = """
+            00 HEAD
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            1 NOTE first paragraph
+            2 CONT second paragraph
+            2 CONC , continued
+        """.trimIndent().lines()
+
+        // When
+        val actual = parseGedcom(input)
+
+        // Then
+        val individual = actual.individuals.getValue(IndividualId("@I1@"))
+        assertThat(individual.notes.single()).isEqualTo("first paragraph\nsecond paragraph, continued")
+    }
+
     @ParameterizedTest
     @MethodSource
     fun mergeOrphanedLinesMergesLinesWithoutALevelNumberIntoThePreviousLine(
