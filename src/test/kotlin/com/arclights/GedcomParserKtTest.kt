@@ -45,6 +45,29 @@ class GedcomParserKtTest {
     }
 
     @Test
+    fun canParseIndividualAttributes() {
+        // Given
+        val input = """
+            00 HEAD
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            1 OCCU Farmer
+            2 PLAC Springfield
+            1 TITL Reverend
+        """.trimIndent().lines()
+
+        // When
+        val actual = parseGedcom(input)
+
+        // Then
+        val individual = actual.individuals.getValue(IndividualId("@I1@"))
+        assertThat(individual.attributes).containsExactlyInAnyOrder(
+            GeneralIndividualAttribute("OCCU", "Farmer", EvenDetail(place = Place("Springfield"))),
+            GeneralIndividualAttribute("TITL", "Reverend", EvenDetail())
+        )
+    }
+
+    @Test
     fun canParseHusbandAndWifeAgeAtFamilyEvent() {
         // Given
         val input = """

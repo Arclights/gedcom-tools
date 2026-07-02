@@ -40,7 +40,13 @@ data class IndividualName(
     val sourceCitations: List<SourceCitation> = listOf()
 )
 
-interface IndividualAttribute // Not implemented yet
+interface IndividualAttribute
+
+data class GeneralIndividualAttribute(
+    val type: String,
+    val value: String,
+    val detail: EvenDetail
+) : IndividualAttribute
 
 data class ChildToFamilyLink(
     val familyId: FamilyGroupId,
