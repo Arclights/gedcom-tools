@@ -59,7 +59,12 @@ data class SpouseToFamilyLink(
     val notes: List<String> = listOf()
 )
 
-interface Association // Not implemented yet
+data class Association(
+    val individualId: IndividualId,
+    val relation: String? = null,
+    val notes: List<String> = listOf(),
+    val sourceCitations: List<SourceCitation> = listOf()
+)
 
 interface IndividualEvent
 

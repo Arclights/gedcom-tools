@@ -68,6 +68,28 @@ class GedcomParserKtTest {
     }
 
     @Test
+    fun canParseAssociations() {
+        // Given
+        val input = """
+            00 HEAD
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            1 ASSO @I2@
+            2 RELA Godfather
+            2 NOTE trusted family friend
+        """.trimIndent().lines()
+
+        // When
+        val actual = parseGedcom(input)
+
+        // Then
+        val individual = actual.individuals.getValue(IndividualId("@I1@"))
+        assertThat(individual.associations).containsExactly(
+            Association(IndividualId("@I2@"), relation = "Godfather", notes = listOf("trusted family friend"))
+        )
+    }
+
+    @Test
     fun canParseHusbandAndWifeAgeAtFamilyEvent() {
         // Given
         val input = """
