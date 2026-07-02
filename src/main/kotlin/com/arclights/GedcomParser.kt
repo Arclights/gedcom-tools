@@ -95,7 +95,7 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
     val childToFamilies = mutableListOf<ChildToFamilyLink>()
     val spouseToFamilies = mutableListOf<SpouseToFamilyLink>()
     val associations = mutableListOf<Association>()
-    val changeDate: LocalDate? = null
+    var changeDate: LocalDate? = null
     val notes = mutableListOf<String>()
     val sourceCitations = mutableListOf<SourceCitation>()
     val multimediaLinks = mutableListOf<MultimediaLink>()
@@ -158,8 +158,8 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
             ).let(childToFamilies::add)
         },
         TagParser("FAMS") { familyId -> parseSpouseToFamilyLink(familyId, lineIterator).let(spouseToFamilies::add) },
-        TagParser("ASSO") { individualId -> parseAssociation(individualId, lineIterator).let(associations::add) }
-//                "CHAN" -> parseChangeDate
+        TagParser("ASSO") { individualId -> parseAssociation(individualId, lineIterator).let(associations::add) },
+        TagParser("CHAN") { changeDate = parseChangeDate(lineIterator) }
     )
 
     return Individual(
@@ -233,6 +233,24 @@ fun parseAssociation(individualId: String, lineIterator: LineIterator): Associat
         sourceCitations
     )
 }
+
+private val changeDateRegex =
+    """^(\d{1,2}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})$""".toRegex()
+
+fun parseChangeDate(lineIterator: LineIterator): LocalDate? {
+    var changeDate: LocalDate? = null
+
+    lineIterator.parseByTag(
+        TagParser("DATE") { changeDate = parseSimpleGregorianDate(it) }
+    )
+
+    return changeDate
+}
+
+fun parseSimpleGregorianDate(dateString: String): LocalDate? =
+    changeDateRegex.matchEntire(dateString)?.destructured?.let { (day, month, year) ->
+        LocalDate.of(year.toInt(), GregorianCalendar.Month.valueOf(month).ordinal + 1, day.toInt())
+    }
 
 fun parsePersonalName(name: String, lineIterator: LineIterator): IndividualName {
     var type: String? = null
@@ -480,6 +498,7 @@ fun parseFamilyGroup(id: String, lineIterator: LineIterator): FamilyGroup {
         TagParser("MARR", familyEventParser),
         TagParser("MARL", familyEventParser),
         TagParser("MARS", familyEventParser),
+        TagParser("CHAN") { changeDate = parseChangeDate(lineIterator) },
         noteParser(notes),
         sourceCitationParser(sourceCitations, lineIterator),
         multimediaLinkParser(multimediaLinks)
