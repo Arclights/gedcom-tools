@@ -424,8 +424,8 @@ fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
     val tag = lineIterator.current().tag()
     val eventType = FamilyEventType.fromTagNameStrict(tag)
 
-    var husbandAge: Int? = null
-    var wifeAge: Int? = null
+    var husbandAge: String? = null
+    var wifeAge: String? = null
     var eventOrFactClassification: String? = null
     var date: DateValue? = null
     var place: Place? = null
@@ -435,8 +435,8 @@ fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
     val multimediaLinks = mutableListOf<MultimediaLink>()
 
     lineIterator.parseByTag(
-        TagParser("HUSB") { husbandAge = it.toInt() },
-        TagParser("WIFE") { wifeAge = it.toInt() },
+        TagParser("HUSB") { husbandAge = it },
+        TagParser("WIFE") { wifeAge = it },
         *getEventDetailTagParsers(
             { eventOrFactClassification = it },
             { date = it },

@@ -1,6 +1,7 @@
 package com.arclights
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -19,6 +20,28 @@ class GedcomParserKtTest {
 
         // Then
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected)
+    }
+
+    @Test
+    fun canParseHusbandAndWifeAgeAtFamilyEvent() {
+        // Given
+        val input = """
+            00 HEAD
+            0 @F1@ FAM
+            1 MARR
+            2 HUSB
+            3 AGE 26y
+            2 WIFE
+            3 AGE 24y
+        """.trimIndent().lines()
+
+        // When
+        val actual = parseGedcom(input)
+
+        // Then
+        val detail = actual.familyGroups.getValue(FamilyGroupId("@F1@")).events.single().detail
+        assertThat(detail?.husbandAge).isEqualTo("26y")
+        assertThat(detail?.wifeAge).isEqualTo("24y")
     }
 
     @ParameterizedTest

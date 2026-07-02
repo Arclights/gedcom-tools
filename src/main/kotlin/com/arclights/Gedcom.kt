@@ -134,8 +134,8 @@ data class FamilyEvent(
 )
 
 data class FamilyEventDetail(
-    val husbandAge: Int? = null,
-    val wifeAge: Int? = null,
+    val husbandAge: String? = null,
+    val wifeAge: String? = null,
     val detail: EvenDetail?
 )
 
