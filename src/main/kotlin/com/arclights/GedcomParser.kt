@@ -41,7 +41,7 @@ fun parseGedcom(lines: List<String>): Gedcom {
     ).also(Gedcom::logDanglingReferences)
 }
 
-fun Gedcom.logDanglingReferences() {
+private fun Gedcom.logDanglingReferences() {
     individuals.values.forEach { individual ->
         individual.childToFamilies.forEach { link ->
             if (link.familyId !in familyGroups) {
@@ -74,7 +74,7 @@ fun Gedcom.logDanglingReferences() {
     }
 }
 
-fun <T, K> Collection<T>.associateByLoggingDuplicates(keySelector: (T) -> K): Map<K, T> {
+private fun <T, K> Collection<T>.associateByLoggingDuplicates(keySelector: (T) -> K): Map<K, T> {
     val result = LinkedHashMap<K, T>(size)
     for (element in this) {
         val key = keySelector(element)
@@ -86,7 +86,7 @@ fun <T, K> Collection<T>.associateByLoggingDuplicates(keySelector: (T) -> K): Ma
     return result
 }
 
-fun validateFormat(lines: List<Line>) {
+private fun validateFormat(lines: List<Line>) {
     val improperlyFormattedLines = lines.filter { it.inProperFormat().not() }
 
     if (improperlyFormattedLines.isEmpty().not()) {
@@ -99,7 +99,7 @@ fun validateFormat(lines: List<Line>) {
     }
 }
 
-fun List<Line>.mergeConcAndCont(): List<Line> {
+private fun List<Line>.mergeConcAndCont(): List<Line> {
     val merged = mutableListOf<Line>()
     for (line in this) {
         when (line.tag()) {
@@ -111,7 +111,7 @@ fun List<Line>.mergeConcAndCont(): List<Line> {
     return merged
 }
 
-fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
+private fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
 
     val names = mutableListOf<IndividualName>()
     var sex: Sex? = null
@@ -208,7 +208,7 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
     )
 }
 
-fun parseIndividualAttribute(type: String, value: String, lineIterator: LineIterator): GeneralIndividualAttribute {
+private fun parseIndividualAttribute(type: String, value: String, lineIterator: LineIterator): GeneralIndividualAttribute {
     var eventOrFactClassification: String? = null
     var date: DateValue? = null
     var place: Place? = null
@@ -245,7 +245,7 @@ fun parseIndividualAttribute(type: String, value: String, lineIterator: LineIter
     )
 }
 
-fun parseAssociation(individualId: String, lineIterator: LineIterator): Association {
+private fun parseAssociation(individualId: String, lineIterator: LineIterator): Association {
     var relation: String? = null
     val notes = mutableListOf<String>()
     val sourceCitations = mutableListOf<SourceCitation>()
@@ -267,7 +267,7 @@ fun parseAssociation(individualId: String, lineIterator: LineIterator): Associat
 private val changeDateRegex =
     """^(\d{1,2}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})$""".toRegex()
 
-fun parseChangeDate(lineIterator: LineIterator): LocalDate? {
+private fun parseChangeDate(lineIterator: LineIterator): LocalDate? {
     var changeDate: LocalDate? = null
 
     lineIterator.parseByTag(
@@ -277,12 +277,12 @@ fun parseChangeDate(lineIterator: LineIterator): LocalDate? {
     return changeDate
 }
 
-fun parseSimpleGregorianDate(dateString: String): LocalDate? =
+private fun parseSimpleGregorianDate(dateString: String): LocalDate? =
     changeDateRegex.matchEntire(dateString)?.destructured?.let { (day, month, year) ->
         LocalDate.of(year.toInt(), GregorianCalendar.Month.valueOf(month).ordinal + 1, day.toInt())
     }
 
-fun parsePersonalName(name: String, lineIterator: LineIterator): IndividualName {
+private fun parsePersonalName(name: String, lineIterator: LineIterator): IndividualName {
     var type: String? = null
     var prefix: String? = null
     var given: String? = null
@@ -319,7 +319,7 @@ fun parsePersonalName(name: String, lineIterator: LineIterator): IndividualName 
     )
 }
 
-fun parseChildToFamilyLink(familyId: String, lineIterator: LineIterator): ChildToFamilyLink {
+private fun parseChildToFamilyLink(familyId: String, lineIterator: LineIterator): ChildToFamilyLink {
     var pedigreeLinkageType: String? = null
     val notes = mutableListOf<String>()
 
@@ -348,7 +348,7 @@ private fun parseSpouseToFamilyLink(familyId: String, lineIterator: LineIterator
     )
 }
 
-fun parseBirthEvent(lineIterator: LineIterator): BirthEvent {
+private fun parseBirthEvent(lineIterator: LineIterator): BirthEvent {
     var familyId: FamilyGroupId? = null
     var age: String? = null
     var eventOrFactClassification: String? = null
@@ -391,7 +391,7 @@ fun parseBirthEvent(lineIterator: LineIterator): BirthEvent {
     )
 }
 
-fun parseDeathEvent(confirmed: Boolean, lineIterator: LineIterator): DeathEvent {
+private fun parseDeathEvent(confirmed: Boolean, lineIterator: LineIterator): DeathEvent {
     var age: String? = null
     var eventOrFactClassification: String? = null
     var date: DateValue? = null
@@ -432,7 +432,7 @@ fun parseDeathEvent(confirmed: Boolean, lineIterator: LineIterator): DeathEvent 
     )
 }
 
-fun parseChristeningEvent(confirmed: Boolean, lineIterator: LineIterator): ChristeningEvent {
+private fun parseChristeningEvent(confirmed: Boolean, lineIterator: LineIterator): ChristeningEvent {
     var familyId: FamilyGroupId? = null
     var age: String? = null
     var eventOrFactClassification: String? = null
@@ -476,7 +476,7 @@ fun parseChristeningEvent(confirmed: Boolean, lineIterator: LineIterator): Chris
     )
 }
 
-fun getIndividualEventDetailTagParsers(
+private fun getIndividualEventDetailTagParsers(
     assignAge: (String) -> Unit,
     assignEventOrFactClassification: (String) -> Unit,
     assignDate: (DateValue) -> Unit,
@@ -500,7 +500,7 @@ fun getIndividualEventDetailTagParsers(
     )
 )
 
-fun parseFamilyGroup(id: String, lineIterator: LineIterator): FamilyGroup {
+private fun parseFamilyGroup(id: String, lineIterator: LineIterator): FamilyGroup {
     val events = mutableListOf<FamilyEvent>()
     var husband: IndividualId? = null
     var wife: IndividualId? = null
@@ -548,7 +548,7 @@ fun parseFamilyGroup(id: String, lineIterator: LineIterator): FamilyGroup {
     )
 }
 
-fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
+private fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
     val tag = lineIterator.current().tag()
     val eventType = FamilyEventType.fromTagNameStrict(tag)
 
@@ -605,7 +605,7 @@ private fun parseFamilyEventPersonAge(lineIterator: LineIterator): String? {
     return age
 }
 
-fun getEventDetailTagParsers(
+private fun getEventDetailTagParsers(
     assignEventOrFactClassification: (String) -> Unit,
     assignDate: (DateValue) -> Unit,
     assignPlace: (Place) -> Unit,
@@ -617,14 +617,14 @@ fun getEventDetailTagParsers(
 ) = arrayOf(
     TagParser("TYPE", assignEventOrFactClassification),
     dateParser(assignDate),
-    TagParser("PLAC") { name -> parserPlace(name, lineIterator).let(assignPlace) },
+    TagParser("PLAC") { name -> parsePlace(name, lineIterator).let(assignPlace) },
     TagParser("ADDR") { parseAddress(lineIterator).let(assignAddress) },
     noteParser(notes),
     sourceCitationParser(sourceCitations, lineIterator),
     multimediaLinkParser(multimediaLinks)
 )
 
-fun parserPlace(name: String, lineIterator: LineIterator): Place {
+private fun parsePlace(name: String, lineIterator: LineIterator): Place {
     var latitude: Double? = null
     var longitude: Double? = null
     val notes = mutableListOf<String>()
@@ -642,7 +642,7 @@ fun parserPlace(name: String, lineIterator: LineIterator): Place {
     )
 }
 
-fun parseCoordinates(
+private fun parseCoordinates(
     lineIterator: LineIterator,
     longitudeSetter: (Double) -> Unit,
     latitudeSetter: (Double) -> Unit
@@ -653,7 +653,7 @@ fun parseCoordinates(
     )
 }
 
-fun parseAddress(lineIterator: LineIterator): Address {
+private fun parseAddress(lineIterator: LineIterator): Address {
     var address1: String? = null
     var address2: String? = null
     var address3: String? = null
@@ -703,7 +703,7 @@ fun parseAddress(lineIterator: LineIterator): Address {
     )
 }
 
-fun parseSourceCitation(id: String, lineIterator: LineIterator): SourceCitation {
+private fun parseSourceCitation(id: String, lineIterator: LineIterator): SourceCitation {
     val source = SourceId(id)
     var page: String? = null
     var eventTypeCitedFrom: EventTypeCitedFrom? = null
@@ -737,7 +737,7 @@ fun parseSourceCitation(id: String, lineIterator: LineIterator): SourceCitation 
     )
 }
 
-fun parseSourceCitationData(lineIterator: LineIterator): SourceCitation.Data {
+private fun parseSourceCitationData(lineIterator: LineIterator): SourceCitation.Data {
     var date: DateValue? = null
     var text: String? = null
 
@@ -752,11 +752,9 @@ fun parseSourceCitationData(lineIterator: LineIterator): SourceCitation.Data {
     )
 }
 
-fun parseEventTypeCitedFrom(tagName: String, lineIterator: LineIterator): EventTypeCitedFrom? {
-    val type = tagName
-    // MyHeritage is breaking this GEDCOM rule
-//    return EventType.fromTagName(tagName)
-//        ?.let { type ->
+// Ideally the type would be validated against EventType.fromTagName, but MyHeritage
+// exports break this GEDCOM rule by using arbitrary tag names here, so it's kept as-is.
+private fun parseEventTypeCitedFrom(tagName: String, lineIterator: LineIterator): EventTypeCitedFrom {
     var roleInEvent: String? = null
 
     lineIterator.parseByTag(
@@ -764,18 +762,12 @@ fun parseEventTypeCitedFrom(tagName: String, lineIterator: LineIterator): EventT
     )
 
     return EventTypeCitedFrom(
-        type,
+        tagName,
         roleInEvent
     )
-//        }
-//        ?: run {
-//            println("Could not parse event type cited from with name $tagName")
-//            return null
-//        }
-
 }
 
-fun parseSource(id: String, lineIterator: LineIterator): Source {
+private fun parseSource(id: String, lineIterator: LineIterator): Source {
     var data: Source.Data? = null
     var author: String? = null
     var title: String? = null
@@ -815,7 +807,7 @@ fun parseSource(id: String, lineIterator: LineIterator): Source {
     )
 }
 
-fun parseSourceData(lineIterator: LineIterator): Source.Data {
+private fun parseSourceData(lineIterator: LineIterator): Source.Data {
     val events = mutableListOf<Source.Data.Event>()
     var responsibleAgency: String? = null
     val notes = mutableListOf<String>()
@@ -833,7 +825,7 @@ fun parseSourceData(lineIterator: LineIterator): Source.Data {
     )
 }
 
-fun parseSourceDataEvent(type: String, lineIterator: LineIterator): Source.Data.Event {
+private fun parseSourceDataEvent(type: String, lineIterator: LineIterator): Source.Data.Event {
     var date: DateValue? = null
     var place: String? = null
 
@@ -849,7 +841,7 @@ fun parseSourceDataEvent(type: String, lineIterator: LineIterator): Source.Data.
     )
 }
 
-fun parseDateValue(dateString: String): DateValue =
+internal fun parseDateValue(dateString: String): DateValue =
     dateString
         .split(" ")
         .let { dateParts ->
@@ -861,7 +853,7 @@ fun parseDateValue(dateString: String): DateValue =
                 ?: DatePhrase(dateString)
         }
 
-fun parseDatePeriod(dateParts: List<String>): DatePeriod? {
+private fun parseDatePeriod(dateParts: List<String>): DatePeriod? {
     if (dateParts.firstOrNull() != "FROM") {
         return null
     }
@@ -877,7 +869,7 @@ fun parseDatePeriod(dateParts: List<String>): DatePeriod? {
     return DatePeriod(from, to)
 }
 
-fun parseDateRange(dateParts: List<String>): DateRange? {
+private fun parseDateRange(dateParts: List<String>): DateRange? {
     return when (dateParts.firstOrNull()) {
         "BEF" -> parseDate(dateParts.drop(1))?.let(::DateRangeBefore)
         "AFT" -> parseDate(dateParts.drop(1))?.let(::DateRangeAfter)
@@ -897,7 +889,7 @@ fun parseDateRange(dateParts: List<String>): DateRange? {
     }
 }
 
-fun parseDateApproximated(dateParts: List<String>): DateApproximated? {
+private fun parseDateApproximated(dateParts: List<String>): DateApproximated? {
     if (dateParts.firstOrNull() !in setOf("ABT", "CAL", "EST")) {
         return null
     }
@@ -905,7 +897,7 @@ fun parseDateApproximated(dateParts: List<String>): DateApproximated? {
     return parseDate(dateParts.drop(1))?.let(::DateApproximated)
 }
 
-fun parseDatePhraseExt(dateParts: List<String>): DatePhraseExt? {
+private fun parseDatePhraseExt(dateParts: List<String>): DatePhraseExt? {
     // TODO
     return null
 }
@@ -918,7 +910,7 @@ private val monthDualYearRegex = """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NO
 private val dayMonthDualYearRegex =
     """^(\d{1,2}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})/(\d{3,4})$""".toRegex()
 
-fun parseDate(dateParts: List<String>): Date? {
+private fun parseDate(dateParts: List<String>): Date? {
     return dateParts
         .dropWhile { it == Calendars.GREGORIAN.id }
         .joinToString(" ")
@@ -979,7 +971,7 @@ fun parseDate(dateParts: List<String>): Date? {
         )
 }
 
-fun <T> String.parseByPattern(vararg parsers: RegexParser<T>): T? {
+private fun <T> String.parseByPattern(vararg parsers: RegexParser<T>): T? {
     for ((regex, parser) in parsers) {
         regex.matchEntire(this)
             ?.let {
@@ -996,9 +988,9 @@ data class RegexParser<T>(
 
 const val BYTE_ORDER_MARK = '﻿'
 
-fun getByteOrderMark(lines: List<String>): Char? = lines[0].firstOrNull()
+private fun getByteOrderMark(lines: List<String>): Char? = lines[0].firstOrNull()
 
-fun stripByteOrderMark(lines: List<String>): List<String> {
+internal fun stripByteOrderMark(lines: List<String>): List<String> {
     if (lines.isEmpty() || getByteOrderMark(lines) != BYTE_ORDER_MARK) {
         return lines
     }
@@ -1006,9 +998,13 @@ fun stripByteOrderMark(lines: List<String>): List<String> {
     return listOf(lines[0].drop(1)) + lines.drop(1)
 }
 
-fun insertDummyFirstLine(lines: List<String>) = listOf("-1") + lines
+// parseByProperty's recursive descent always needs a "super line" one level shallower
+// than whatever it's currently parsing, so the very first real line (depth 0) needs an
+// artificial parent. "-1" is a line consisting of just a depth with no tag, one level
+// above the shallowest depth any real GEDCOM record can have.
+private fun insertDummyFirstLine(lines: List<String>) = listOf("-1") + lines
 
-fun mergeOrphanedLines(lines: List<String>): List<String> {
+internal fun mergeOrphanedLines(lines: List<String>): List<String> {
     val merged = mutableListOf<String>()
     lines.forEach { line ->
         if (merged.isEmpty() || line.takeWhile(Char::notSpace).toIntOrNull() != null) {
@@ -1039,7 +1035,7 @@ data class Line(val lineNbr: Int, val line: String) {
     }
 }
 
-fun List<Line>.lineIterator() = LineIterator(this)
+private fun List<Line>.lineIterator() = LineIterator(this)
 class LineIterator(lines: List<Line>) : PeekableIterator<Line>(lines) {
     fun parseByContent(vararg contentParsers: ContentParser) {
         parseByProperty(
@@ -1119,10 +1115,10 @@ data class ParseContainer(
     val sources: MutableList<Source> = mutableListOf()
 )
 
-fun String?.toConfirmed() = when (this) {
+private fun String?.toConfirmed() = when (this) {
     "Y" -> true
     "" -> false
     else -> throw IllegalArgumentException("'$this' is not a valid confirmed string")
 }
 
-fun Char.notSpace() = this != ' '
+private fun Char.notSpace() = this != ' '
