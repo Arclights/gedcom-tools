@@ -736,18 +736,47 @@ fun parseDateValue(dateString: String): DateValue =
         }
 
 fun parseDatePeriod(dateParts: List<String>): DatePeriod? {
-    // TODO
-    return null
+    if (dateParts.firstOrNull() != "FROM") {
+        return null
+    }
+
+    val toIndex = dateParts.indexOf("TO")
+    if (toIndex <= 0) {
+        return null
+    }
+
+    val from = parseDate(dateParts.subList(1, toIndex)) ?: return null
+    val to = parseDate(dateParts.subList(toIndex + 1, dateParts.size)) ?: return null
+
+    return DatePeriod(from, to)
 }
 
 fun parseDateRange(dateParts: List<String>): DateRange? {
-    // TODO
-    return null
+    return when (dateParts.firstOrNull()) {
+        "BEF" -> parseDate(dateParts.drop(1))?.let(::DateRangeBefore)
+        "AFT" -> parseDate(dateParts.drop(1))?.let(::DateRangeAfter)
+        "BET" -> {
+            val andIndex = dateParts.indexOf("AND")
+            if (andIndex <= 0) {
+                return null
+            }
+
+            val date1 = parseDate(dateParts.subList(1, andIndex)) ?: return null
+            val date2 = parseDate(dateParts.subList(andIndex + 1, dateParts.size)) ?: return null
+
+            DateRangeBetween(date1, date2)
+        }
+
+        else -> null
+    }
 }
 
 fun parseDateApproximated(dateParts: List<String>): DateApproximated? {
-    // TODO
-    return null
+    if (dateParts.firstOrNull() !in setOf("ABT", "CAL", "EST")) {
+        return null
+    }
+
+    return parseDate(dateParts.drop(1))?.let(::DateApproximated)
 }
 
 fun parseDatePhraseExt(dateParts: List<String>): DatePhraseExt? {
