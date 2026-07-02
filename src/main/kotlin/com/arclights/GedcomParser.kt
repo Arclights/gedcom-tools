@@ -55,14 +55,21 @@ fun validateFormat(lines: List<Line>) {
 }
 
 fun List<Line>.mergeConcAndCont(): List<Line> {
-    val concOrCont = setOf("CONC", "CONT")
     return this.fold(listOf()) { lines, line ->
-        if (line.tag() in concOrCont) {
-            val lastLine = lines.last()
-            val updatedLastLine = lastLine.copy(line = lastLine.line + line.content())
-            lines.dropLast(1).plus(updatedLastLine)
-        } else {
-            lines.plus(line)
+        when (line.tag()) {
+            "CONC" -> {
+                val lastLine = lines.last()
+                val updatedLastLine = lastLine.copy(line = lastLine.line + line.content())
+                lines.dropLast(1).plus(updatedLastLine)
+            }
+
+            "CONT" -> {
+                val lastLine = lines.last()
+                val updatedLastLine = lastLine.copy(line = lastLine.line + "\n" + line.content())
+                lines.dropLast(1).plus(updatedLastLine)
+            }
+
+            else -> lines.plus(line)
         }
     }
 }
