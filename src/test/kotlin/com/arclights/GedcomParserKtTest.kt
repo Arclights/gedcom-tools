@@ -99,6 +99,16 @@ class GedcomParserKtTest {
 
     @ParameterizedTest
     @MethodSource
+    fun canParseApproximateRangeAndPeriodDates(dateString: String, expected: DateValue) {
+        // When
+        val actual = parseDateValue(dateString)
+
+        // Then
+        assertThat(actual).isEqualTo(expected)
+    }
+
+    @ParameterizedTest
+    @MethodSource
     fun mergeOrphanedLinesMergesLinesWithoutALevelNumberIntoThePreviousLine(
         input: List<String>,
         expected: List<String>
@@ -202,6 +212,47 @@ class GedcomParserKtTest {
                                 )
                             )
                         )
+                    )
+                )
+            )
+        )
+
+        @JvmStatic
+        fun canParseApproximateRangeAndPeriodDates(): Stream<Arguments> = Stream.of(
+            Arguments.of(
+                "ABT 1850",
+                DateApproximated(Date(Calendars.GREGORIAN, GregorianCalendar(year = Year(1850, 1850))))
+            ),
+            Arguments.of(
+                "BEF 1 JAN 1900",
+                DateRangeBefore(
+                    Date(
+                        Calendars.GREGORIAN,
+                        GregorianCalendar(day = 1, month = GregorianCalendar.Month.JAN, year = Year(1900, 1900))
+                    )
+                )
+            ),
+            Arguments.of(
+                "AFT 1920",
+                DateRangeAfter(Date(Calendars.GREGORIAN, GregorianCalendar(year = Year(1920, 1920))))
+            ),
+            Arguments.of(
+                "BET 1920 AND 1925",
+                DateRangeBetween(
+                    Date(Calendars.GREGORIAN, GregorianCalendar(year = Year(1920, 1920))),
+                    Date(Calendars.GREGORIAN, GregorianCalendar(year = Year(1925, 1925)))
+                )
+            ),
+            Arguments.of(
+                "FROM 1 JAN 1920 TO 31 DEC 1925",
+                DatePeriod(
+                    Date(
+                        Calendars.GREGORIAN,
+                        GregorianCalendar(day = 1, month = GregorianCalendar.Month.JAN, year = Year(1920, 1920))
+                    ),
+                    Date(
+                        Calendars.GREGORIAN,
+                        GregorianCalendar(day = 31, month = GregorianCalendar.Month.DEC, year = Year(1925, 1925))
                     )
                 )
             )
