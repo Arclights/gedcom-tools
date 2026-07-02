@@ -90,6 +90,31 @@ class GedcomParserKtTest {
     }
 
     @Test
+    fun canParseChangeDateForIndividualsAndFamilyGroups() {
+        // Given
+        val input = """
+            00 HEAD
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            1 CHAN
+            2 DATE 3 MAR 2021
+            0 @F1@ FAM
+            1 HUSB @I1@
+            1 CHAN
+            2 DATE 4 APR 2022
+        """.trimIndent().lines()
+
+        // When
+        val actual = parseGedcom(input)
+
+        // Then
+        val individual = actual.individuals.getValue(IndividualId("@I1@"))
+        val family = actual.familyGroups.getValue(FamilyGroupId("@F1@"))
+        assertThat(individual.changeDate).isEqualTo(java.time.LocalDate.of(2021, 3, 3))
+        assertThat(family.changeDate).isEqualTo(java.time.LocalDate.of(2022, 4, 4))
+    }
+
+    @Test
     fun canParseHusbandAndWifeAgeAtFamilyEvent() {
         // Given
         val input = """
