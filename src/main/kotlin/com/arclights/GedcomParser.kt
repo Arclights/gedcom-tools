@@ -35,10 +35,22 @@ fun parseGedcom(lines: List<String>): Gedcom {
     logger.debug("Nbr of individuals: ${parseContainer.individuals.size}")
     logger.debug("Nbr of sources: ${parseContainer.sources.size}")
     return Gedcom(
-        familyGroups = parseContainer.familyGroups.associateBy { it.id },
-        individuals = parseContainer.individuals.associateBy { it.id },
-        sources = parseContainer.sources.associateBy { it.id }
+        familyGroups = parseContainer.familyGroups.associateByLoggingDuplicates(FamilyGroup::id),
+        individuals = parseContainer.individuals.associateByLoggingDuplicates(Individual::id),
+        sources = parseContainer.sources.associateByLoggingDuplicates(Source::id)
     )
+}
+
+fun <T, K> Collection<T>.associateByLoggingDuplicates(keySelector: (T) -> K): Map<K, T> {
+    val result = LinkedHashMap<K, T>(size)
+    for (element in this) {
+        val key = keySelector(element)
+        if (result.containsKey(key)) {
+            logger.warn("Duplicate id '$key' found, discarding the earlier record with this id")
+        }
+        result[key] = element
+    }
+    return result
 }
 
 fun validateFormat(lines: List<Line>) {
