@@ -910,14 +910,15 @@ fun parseDatePhraseExt(dateParts: List<String>): DatePhraseExt? {
     return null
 }
 
+private val yearRegex = """^(\d{3,4})(?: (BCE|BC|B\.C\.))?$""".toRegex()
+private val monthYearRegex = """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})$""".toRegex()
+private val dayMonthYearRegex = """^(\d{1,2}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})$""".toRegex()
+private val dayMonthRegex = """^(\d{1,2}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""".toRegex()
+private val monthDualYearRegex = """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})/(\d{3,4})$""".toRegex()
+private val dayMonthDualYearRegex =
+    """^(\d{1,2}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})/(\d{3,4})$""".toRegex()
+
 fun parseDate(dateParts: List<String>): Date? {
-    val yearRegex = """^(\d{3,4})(?: (BCE|BC|B\.C\.))?$""".toRegex()
-    val monthYearRegex = """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})$""".toRegex()
-    val dayMonthYearRegex = """^(\d{1,2}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})$""".toRegex()
-    val dayMonthRegex = """^(\d{1,2}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""".toRegex()
-    val monthDualYearRegex = """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})/(\d{3,4})$""".toRegex()
-    val dayMonthDualYearRegex =
-        """^(\d{1,2}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{3,4})/(\d{3,4})$""".toRegex()
     return dateParts
         .dropWhile { it == Calendars.GREGORIAN.id }
         .joinToString(" ")
