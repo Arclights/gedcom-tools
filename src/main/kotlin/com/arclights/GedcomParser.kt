@@ -908,11 +908,19 @@ class LineIterator(lines: List<Line>) : PeekableIterator<Line>(lines) {
                 logger.error("Could not parse line ${subLine.lineNbr}: ${subLine.line}")
                 continue
             }
-            propertyParsers.firstOrNull { parser -> propertyParserKey(parser) == property(subLine) }
-//                ?.also { println("Found parser for property ${property(subLine)}") }
-                ?.let(propertyParser)
-                ?.let { parse -> parse(value(subLine)) }
-                ?: logger.warn("No parser found for property ${property(subLine)}, skipping line ${subLine.lineNbr}: ${subLine.line}")
+            val matchedParser = propertyParsers.firstOrNull { parser -> propertyParserKey(parser) == property(subLine) }
+            if (matchedParser != null) {
+                propertyParser(matchedParser)(value(subLine))
+            } else {
+                logger.warn("No parser found for property ${property(subLine)}, skipping line ${subLine.lineNbr}: ${subLine.line}")
+                skipSubtree(subLine.depth())
+            }
+        }
+    }
+
+    private fun skipSubtree(parentDepth: Int) {
+        while (hasNext() && peek().depth() > parentDepth) {
+            next()
         }
     }
 }
