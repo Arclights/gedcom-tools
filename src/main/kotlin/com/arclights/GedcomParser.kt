@@ -100,23 +100,15 @@ fun validateFormat(lines: List<Line>) {
 }
 
 fun List<Line>.mergeConcAndCont(): List<Line> {
-    return this.fold(listOf()) { lines, line ->
+    val merged = mutableListOf<Line>()
+    for (line in this) {
         when (line.tag()) {
-            "CONC" -> {
-                val lastLine = lines.last()
-                val updatedLastLine = lastLine.copy(line = lastLine.line + line.content())
-                lines.dropLast(1).plus(updatedLastLine)
-            }
-
-            "CONT" -> {
-                val lastLine = lines.last()
-                val updatedLastLine = lastLine.copy(line = lastLine.line + "\n" + line.content())
-                lines.dropLast(1).plus(updatedLastLine)
-            }
-
-            else -> lines.plus(line)
+            "CONC" -> merged[merged.lastIndex] = merged.last().let { it.copy(line = it.line + line.content()) }
+            "CONT" -> merged[merged.lastIndex] = merged.last().let { it.copy(line = it.line + "\n" + line.content()) }
+            else -> merged.add(line)
         }
     }
+    return merged
 }
 
 fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
