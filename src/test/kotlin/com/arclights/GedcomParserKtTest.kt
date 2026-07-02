@@ -85,6 +85,18 @@ class GedcomParserKtTest {
         assertThat(individual.notes.single()).isEqualTo("first paragraph\nsecond paragraph, continued")
     }
 
+    @Test
+    fun stripByteOrderMarkOnlyStripsWhenABomIsActuallyPresent() {
+        // Given
+        val bom = "﻿"
+        val withoutBom = listOf("0 HEAD", "0 TRLR")
+        val withBom = listOf(bom + "0 HEAD", "0 TRLR")
+
+        // Then
+        assertThat(stripByteOrderMark(withoutBom)).isEqualTo(listOf("0 HEAD", "0 TRLR"))
+        assertThat(stripByteOrderMark(withBom)).isEqualTo(listOf("0 HEAD", "0 TRLR"))
+    }
+
     @ParameterizedTest
     @MethodSource
     fun mergeOrphanedLinesMergesLinesWithoutALevelNumberIntoThePreviousLine(
