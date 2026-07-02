@@ -1,13 +1,35 @@
 package com.arclights
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import org.slf4j.LoggerFactory
 import java.util.stream.Stream
 
 class GedcomParserKtTest {
+
+    private fun captureLogs(loggerName: String, block: () -> Unit): List<ILoggingEvent> {
+        val logger = LoggerFactory.getLogger(loggerName) as ch.qos.logback.classic.Logger
+        val originalLevel = logger.level
+        val appender = ListAppender<ILoggingEvent>()
+        appender.start()
+        logger.addAppender(appender)
+        logger.level = Level.ALL
+
+        try {
+            block()
+        } finally {
+            logger.detachAppender(appender)
+            logger.level = originalLevel
+        }
+
+        return appender.list
+    }
 
     @ParameterizedTest
     @MethodSource
@@ -95,6 +117,24 @@ class GedcomParserKtTest {
         // Then
         assertThat(stripByteOrderMark(withoutBom)).isEqualTo(listOf("0 HEAD", "0 TRLR"))
         assertThat(stripByteOrderMark(withBom)).isEqualTo(listOf("0 HEAD", "0 TRLR"))
+    }
+
+    @Test
+    fun logsAWarningWhenTwoIndividualsShareTheSameId() {
+        // Given
+        val input = """
+            00 HEAD
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            0 @I1@ INDI
+            1 NAME Jane /Doe/
+        """.trimIndent().lines()
+
+        // When
+        val logs = captureLogs("GedcomParser") { parseGedcom(input) }
+
+        // Then
+        assertThat(logs).anyMatch { it.level == Level.WARN && it.formattedMessage.contains("@I1@") }
     }
 
     @ParameterizedTest
