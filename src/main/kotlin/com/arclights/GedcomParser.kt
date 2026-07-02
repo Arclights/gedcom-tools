@@ -157,8 +157,8 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
                 lineIterator
             ).let(childToFamilies::add)
         },
-        TagParser("FAMS") { familyId -> parseSpouseToFamilyLink(familyId, lineIterator).let(spouseToFamilies::add) }
-//                "ASSO" -> parseAssociation
+        TagParser("FAMS") { familyId -> parseSpouseToFamilyLink(familyId, lineIterator).let(spouseToFamilies::add) },
+        TagParser("ASSO") { individualId -> parseAssociation(individualId, lineIterator).let(associations::add) }
 //                "CHAN" -> parseChangeDate
     )
 
@@ -212,6 +212,25 @@ fun parseIndividualAttribute(type: String, value: String, lineIterator: LineIter
             sourceCitations,
             multimediaLinks
         )
+    )
+}
+
+fun parseAssociation(individualId: String, lineIterator: LineIterator): Association {
+    var relation: String? = null
+    val notes = mutableListOf<String>()
+    val sourceCitations = mutableListOf<SourceCitation>()
+
+    lineIterator.parseByTag(
+        TagParser("RELA") { relation = it },
+        noteParser(notes),
+        sourceCitationParser(sourceCitations, lineIterator)
+    )
+
+    return Association(
+        IndividualId(individualId),
+        relation,
+        notes,
+        sourceCitations
     )
 }
 
