@@ -139,7 +139,12 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
 
     lineIterator.parseByTag(
         TagParser("NAME") { name -> parsePersonalName(name, lineIterator).let(names::add) },
-        TagParser("SEX") { sexValue -> sex = Sex.fromValue(sexValue) },
+        TagParser("SEX") { sexValue ->
+            sex = Sex.fromValue(sexValue)
+            if (sex == null) {
+                logger.warn("Unrecognized SEX value '$sexValue' for individual '$id'")
+            }
+        },
         noteParser(notes),
         multimediaLinkParser(multimediaLinks),
         sourceCitationParser(sourceCitations, lineIterator),
@@ -721,7 +726,12 @@ fun parseSourceCitation(id: String, lineIterator: LineIterator): SourceCitation 
         TagParser("DATA") { data = parseSourceCitationData(lineIterator) },
         noteParser(notes),
         multimediaLinkParser(multimediaLinks),
-        TagParser("QUAY") { qualityAssessment = QUAY.fromValue(it.toInt()) }
+        TagParser("QUAY") { quayValue ->
+            qualityAssessment = QUAY.fromValue(quayValue.toInt())
+            if (qualityAssessment == null) {
+                logger.warn("Unrecognized QUAY value '$quayValue' for source citation '$id'")
+            }
+        }
     )
 
     return SourceCitation(
