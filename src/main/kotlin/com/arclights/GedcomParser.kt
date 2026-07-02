@@ -100,6 +100,10 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
     val sourceCitations = mutableListOf<SourceCitation>()
     val multimediaLinks = mutableListOf<MultimediaLink>()
 
+    val attributeParser: (String) -> Unit = { value ->
+        parseIndividualAttribute(lineIterator.current().tag(), value, lineIterator).let(attributes::add)
+    }
+
     lineIterator.parseByTag(
         TagParser("NAME") { name -> parsePersonalName(name, lineIterator).let(names::add) },
         TagParser("SEX") { sexValue -> sex = Sex.fromValue(sexValue) },
@@ -134,19 +138,19 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
 //                "WILL",
 //                "GRAD",
 //                "RETI"-> parseevents
-//                "CAST",
-//                "DSCR",
-//                "EDUC",
-//                "IDNO",
-//                "NATI",
-//                "NCHI",
-//                "NMR",
-//                "OCCU",
-//                "PROP",
-//                "RELI",
-//                "RESI",
-//                "TITL",
-//                "FACT" -> parseattributes
+        TagParser("CAST", attributeParser),
+        TagParser("DSCR", attributeParser),
+        TagParser("EDUC", attributeParser),
+        TagParser("IDNO", attributeParser),
+        TagParser("NATI", attributeParser),
+        TagParser("NCHI", attributeParser),
+        TagParser("NMR", attributeParser),
+        TagParser("OCCU", attributeParser),
+        TagParser("PROP", attributeParser),
+        TagParser("RELI", attributeParser),
+        TagParser("RESI", attributeParser),
+        TagParser("TITL", attributeParser),
+        TagParser("FACT", attributeParser),
         TagParser("FAMC") { familyId ->
             parseChildToFamilyLink(
                 familyId,
@@ -171,6 +175,43 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
         notes,
         sourceCitations,
         multimediaLinks
+    )
+}
+
+fun parseIndividualAttribute(type: String, value: String, lineIterator: LineIterator): GeneralIndividualAttribute {
+    var eventOrFactClassification: String? = null
+    var date: DateValue? = null
+    var place: Place? = null
+    var address: Address? = null
+    val notes = mutableListOf<String>()
+    val sourceCitations = mutableListOf<SourceCitation>()
+    val multimediaLinks = mutableListOf<MultimediaLink>()
+
+    lineIterator.parseByTag(
+        *getEventDetailTagParsers(
+            { eventOrFactClassification = it },
+            { date = it },
+            { place = it },
+            { address = it },
+            notes,
+            sourceCitations,
+            multimediaLinks,
+            lineIterator
+        )
+    )
+
+    return GeneralIndividualAttribute(
+        type,
+        value,
+        EvenDetail(
+            eventOrFactClassification,
+            date,
+            place,
+            address,
+            notes,
+            sourceCitations,
+            multimediaLinks
+        )
     )
 }
 
