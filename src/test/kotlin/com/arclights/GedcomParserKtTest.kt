@@ -133,6 +133,26 @@ class GedcomParserKtTest {
     }
 
     @Test
+    fun logsAWarningForUnrecognizedSexAndQuayValues() {
+        // Given
+        val input = """
+            00 HEAD
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            1 SEX Male
+            1 SOUR @S1@
+            2 QUAY 9
+        """.trimIndent().lines()
+
+        // When
+        val logs = captureLogs("GedcomParser") { parseGedcom(input) }
+
+        // Then
+        assertThat(logs).anyMatch { it.level == Level.WARN && it.formattedMessage.contains("Male") }
+        assertThat(logs).anyMatch { it.level == Level.WARN && it.formattedMessage.contains("9") }
+    }
+
+    @Test
     fun canParseHusbandAndWifeAgeAtFamilyEvent() {
         // Given
         val input = """
