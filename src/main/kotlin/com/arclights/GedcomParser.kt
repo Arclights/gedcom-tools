@@ -838,12 +838,17 @@ data class RegexParser<T>(
     val parser: (result: MatchResult.Destructured) -> T
 )
 
-fun getByteOrderMark(lines: List<String>): Char = lines[0][0]
+const val BYTE_ORDER_MARK = '﻿'
 
-fun stripByteOrderMark(lines: List<String>) = lines[0]
-    .drop(1)
-    .let { listOf(it) }
-    .let { it + lines.drop(1) }
+fun getByteOrderMark(lines: List<String>): Char? = lines[0].firstOrNull()
+
+fun stripByteOrderMark(lines: List<String>): List<String> {
+    if (lines.isEmpty() || getByteOrderMark(lines) != BYTE_ORDER_MARK) {
+        return lines
+    }
+
+    return listOf(lines[0].drop(1)) + lines.drop(1)
+}
 
 fun insertDummyFirstLine(lines: List<String>) = listOf("-1") + lines
 
