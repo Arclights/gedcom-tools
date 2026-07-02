@@ -115,6 +115,24 @@ class GedcomParserKtTest {
     }
 
     @Test
+    fun logsAWarningForDanglingCrossReferences() {
+        // Given
+        // @F999@ is referenced by the individual's FAMC but never actually defined.
+        val input = """
+            00 HEAD
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            1 FAMC @F999@
+        """.trimIndent().lines()
+
+        // When
+        val logs = captureLogs("GedcomParser") { parseGedcom(input) }
+
+        // Then
+        assertThat(logs).anyMatch { it.level == Level.WARN && it.formattedMessage.contains("@F999@") }
+    }
+
+    @Test
     fun canParseHusbandAndWifeAgeAtFamilyEvent() {
         // Given
         val input = """
