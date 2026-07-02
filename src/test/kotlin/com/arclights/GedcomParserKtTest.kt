@@ -44,6 +44,27 @@ class GedcomParserKtTest {
         assertThat(detail?.wifeAge).isEqualTo("24y")
     }
 
+    @Test
+    fun childrenOfAnUnrecognizedTagAreNotAttributedToTheParentRecord() {
+        // Given
+        // "_CUSTOM" is not a tag the individual parser recognizes. Its nested NOTE
+        // belongs to that unknown subtree, not to the individual itself.
+        val input = """
+            00 HEAD
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            1 _CUSTOM somevalue
+            2 NOTE this note belongs to _CUSTOM, not to the individual
+        """.trimIndent().lines()
+
+        // When
+        val actual = parseGedcom(input)
+
+        // Then
+        val individual = actual.individuals.getValue(IndividualId("@I1@"))
+        assertThat(individual.notes).isEmpty()
+    }
+
     @ParameterizedTest
     @MethodSource
     fun mergeOrphanedLinesMergesLinesWithoutALevelNumberIntoThePreviousLine(
