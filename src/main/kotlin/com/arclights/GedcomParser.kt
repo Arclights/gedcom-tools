@@ -435,8 +435,8 @@ fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
     val multimediaLinks = mutableListOf<MultimediaLink>()
 
     lineIterator.parseByTag(
-        TagParser("HUSB") { husbandAge = it },
-        TagParser("WIFE") { wifeAge = it },
+        TagParser("HUSB") { husbandAge = parseFamilyEventPersonAge(lineIterator) },
+        TagParser("WIFE") { wifeAge = parseFamilyEventPersonAge(lineIterator) },
         *getEventDetailTagParsers(
             { eventOrFactClassification = it },
             { date = it },
@@ -465,6 +465,16 @@ fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
             )
         )
     )
+}
+
+private fun parseFamilyEventPersonAge(lineIterator: LineIterator): String? {
+    var age: String? = null
+
+    lineIterator.parseByTag(
+        TagParser("AGE") { age = it }
+    )
+
+    return age
 }
 
 fun getEventDetailTagParsers(
