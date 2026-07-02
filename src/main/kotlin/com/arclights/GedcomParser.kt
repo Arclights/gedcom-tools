@@ -38,7 +38,40 @@ fun parseGedcom(lines: List<String>): Gedcom {
         familyGroups = parseContainer.familyGroups.associateByLoggingDuplicates(FamilyGroup::id),
         individuals = parseContainer.individuals.associateByLoggingDuplicates(Individual::id),
         sources = parseContainer.sources.associateByLoggingDuplicates(Source::id)
-    )
+    ).also(Gedcom::logDanglingReferences)
+}
+
+fun Gedcom.logDanglingReferences() {
+    individuals.values.forEach { individual ->
+        individual.childToFamilies.forEach { link ->
+            if (link.familyId !in familyGroups) {
+                logger.warn("Individual '${individual.id.value}' references unknown family group '${link.familyId.value}' via FAMC")
+            }
+        }
+        individual.spouseToFamilies.forEach { link ->
+            if (link.familyId !in familyGroups) {
+                logger.warn("Individual '${individual.id.value}' references unknown family group '${link.familyId.value}' via FAMS")
+            }
+        }
+    }
+
+    familyGroups.values.forEach { family ->
+        family.husbandId?.let {
+            if (it !in individuals) {
+                logger.warn("Family group '${family.id.value}' references unknown individual '${it.value}' via HUSB")
+            }
+        }
+        family.wifeId?.let {
+            if (it !in individuals) {
+                logger.warn("Family group '${family.id.value}' references unknown individual '${it.value}' via WIFE")
+            }
+        }
+        family.childrenIds.forEach {
+            if (it !in individuals) {
+                logger.warn("Family group '${family.id.value}' references unknown individual '${it.value}' via CHIL")
+            }
+        }
+    }
 }
 
 fun <T, K> Collection<T>.associateByLoggingDuplicates(keySelector: (T) -> K): Map<K, T> {
