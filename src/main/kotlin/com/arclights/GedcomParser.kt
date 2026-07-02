@@ -17,7 +17,7 @@ fun parseGedcom(lines: List<String>): Gedcom {
 
     val parseContainer = ParseContainer()
 
-    println("parsing\n")
+    logger.debug("parsing")
     lineIterator.parseByContent(
         ContentParser("FAM") { id ->
             parseFamilyGroup(id, lineIterator).let { parseContainer.familyGroups.add(it) }
@@ -30,11 +30,10 @@ fun parseGedcom(lines: List<String>): Gedcom {
         }
     )
 
-    println("\nparsed")
-//    println(parseContainer)
-    println("Nbr of family groups: ${parseContainer.familyGroups.size}")
-    println("Nbr of individuals: ${parseContainer.individuals.size}")
-    println("Nbr of sources: ${parseContainer.sources.size}")
+    logger.debug("parsed")
+    logger.debug("Nbr of family groups: ${parseContainer.familyGroups.size}")
+    logger.debug("Nbr of individuals: ${parseContainer.individuals.size}")
+    logger.debug("Nbr of sources: ${parseContainer.sources.size}")
     return Gedcom(
         familyGroups = parseContainer.familyGroups.associateBy { it.id },
         individuals = parseContainer.individuals.associateBy { it.id },
@@ -69,7 +68,6 @@ fun List<Line>.mergeConcAndCont(): List<Line> {
 }
 
 fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
-    println("Parsing individual")
 
     val names = mutableListOf<IndividualName>()
     var sex: Sex? = null
@@ -154,12 +152,10 @@ fun parseIndividual(id: String, lineIterator: LineIterator): Individual {
         notes,
         sourceCitations,
         multimediaLinks
-    ).also { println(it) }
-        .also { println(it.events) }
+    )
 }
 
 fun parsePersonalName(name: String, lineIterator: LineIterator): IndividualName {
-    println("Parsing personal name")
     var type: String? = null
     var prefix: String? = null
     var given: String? = null
@@ -378,8 +374,6 @@ fun getIndividualEventDetailTagParsers(
 )
 
 fun parseFamilyGroup(id: String, lineIterator: LineIterator): FamilyGroup {
-    println("Parsing family group")
-
     val events = mutableListOf<FamilyEvent>()
     var husband: IndividualId? = null
     var wife: IndividualId? = null
@@ -423,7 +417,7 @@ fun parseFamilyGroup(id: String, lineIterator: LineIterator): FamilyGroup {
         notes = notes,
         sourceCitations = sourceCitations,
         multimediaLinks = multimediaLinks
-    ).also { println(it) }
+    )
 }
 
 fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
@@ -675,7 +669,7 @@ fun parseSource(id: String, lineIterator: LineIterator): Source {
         automatedRecordId,
         notes,
         multimediaLinks
-    ).also { println(it) }
+    )
 }
 
 fun parseSourceData(lineIterator: LineIterator): Source.Data {
