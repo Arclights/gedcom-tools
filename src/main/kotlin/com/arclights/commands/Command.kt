@@ -9,5 +9,6 @@ interface Command {
 
 val commands = listOf(
     GradeRelationship(),
-    PersonInfo()
+    PersonInfo(),
+    ConsistencyCheckCommand()
 )
