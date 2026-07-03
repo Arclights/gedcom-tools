@@ -13,6 +13,7 @@ repositories {
 dependencies {
     implementation("ch.qos.logback", "logback-classic", "1.4.5")
     implementation("org.jetbrains.kotlin:kotlin-reflect:2.4.0")
+    implementation("com.googlecode.lanterna:lanterna:3.1.2")
 
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter", "junit-jupiter-params", "5.0.0")

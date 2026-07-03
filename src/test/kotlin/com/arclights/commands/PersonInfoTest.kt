@@ -17,36 +17,14 @@ import com.arclights.Place
 import com.arclights.Sex
 import com.arclights.SpouseToFamilyLink
 import com.arclights.Year
+import com.arclights.findPeopleByName
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
 
 class PersonInfoTest {
 
-    private val originalIn = System.`in`
-    private val originalOut = System.out
-
-    @AfterEach
-    fun restoreStreams() {
-        System.setIn(originalIn)
-        System.setOut(originalOut)
-    }
-
-    private fun runCommand(gedcom: Gedcom, input: String): String {
-        System.setIn(ByteArrayInputStream(input.toByteArray()))
-        val outputStream = ByteArrayOutputStream()
-        System.setOut(PrintStream(outputStream))
-
-        PersonInfo().run(gedcom)
-
-        return outputStream.toString()
-    }
-
     @Test
-    fun printsInfoForMatchedPerson() {
+    fun rendersInfoForPerson() {
         // Given
         val father = Individual(id = IndividualId("@I2@"), names = listOf(IndividualName("Richard /Doe/")))
         val mother = Individual(id = IndividualId("@I3@"), names = listOf(IndividualName("Mary /Doe/")))
@@ -95,7 +73,7 @@ class PersonInfoTest {
         )
 
         // When
-        val output = runCommand(gedcom, "john\n")
+        val output = personInfoText(gedcom, person)
 
         // Then
         assertThat(output.lines()).containsSequence(
@@ -122,7 +100,7 @@ class PersonInfoTest {
         val gedcom = Gedcom(individuals = mapOf(person.id to person))
 
         // When
-        val output = runCommand(gedcom, "john\n")
+        val output = personInfoText(gedcom, person)
 
         // Then
         assertThat(output.lines()).containsSequence(
@@ -132,29 +110,20 @@ class PersonInfoTest {
     }
 
     @Test
-    fun printsMessageWhenNoPersonMatches() {
-        // Given
+    fun findsNoPeopleWhenNothingMatches() {
         val gedcom = Gedcom()
 
-        // When
-        val output = runCommand(gedcom, "jane\n")
-
-        // Then
-        assertThat(output).contains("Found no person with name 'jane'")
+        assertThat(gedcom.findPeopleByName("jane")).isEmpty()
     }
 
     @Test
-    fun disambiguatesBetweenMultipleMatches() {
-        // Given
+    fun findsAllPeopleMatchingNameCaseInsensitively() {
         val person1 = Individual(id = IndividualId("@I1@"), names = listOf(IndividualName("John /Doe/")))
         val person2 = Individual(id = IndividualId("@I2@"), names = listOf(IndividualName("Johnny /Doe/")))
-        val gedcom = Gedcom(individuals = mapOf(person1.id to person1, person2.id to person2))
+        val other = Individual(id = IndividualId("@I3@"), names = listOf(IndividualName("Jane /Roe/")))
+        val gedcom = Gedcom(individuals = listOf(person1, person2, other).associateBy { it.id })
 
-        // When
-        val output = runCommand(gedcom, "john\n1\n")
-
-        // Then
-        assertThat(output).contains("Found multiple matches for name 'john':")
-        assertThat(output).contains("Found Johnny /Doe/")
+        assertThat(gedcom.findPeopleByName("JOHN"))
+            .containsExactlyInAnyOrder(person1, person2)
     }
 }

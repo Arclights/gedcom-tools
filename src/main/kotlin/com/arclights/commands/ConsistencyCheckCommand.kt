@@ -7,6 +7,7 @@ import com.arclights.consistency.ConsistencyConfig
 import com.arclights.consistency.Issue
 import com.arclights.consistency.Severity
 import com.arclights.consistency.runConsistencyChecks
+import com.arclights.tui.Tui
 
 class ConsistencyCheckCommand(
     private val config: ConsistencyConfig = ConsistencyConfig()
@@ -14,27 +15,28 @@ class ConsistencyCheckCommand(
 
     override fun getName() = "Check for inconsistencies"
 
-    override fun run(gedcom: Gedcom) {
+    override fun run(gedcom: Gedcom, tui: Tui) {
         val issues = runConsistencyChecks(gedcom, config)
 
         val errors = issues.filter { it.severity == Severity.ERROR }
         val warnings = issues.filter { it.severity == Severity.WARNING }
 
-        println()
-        println("Consistency check found ${errors.size} error(s) and ${warnings.size} warning(s)")
+        val report = buildString {
+            appendLine("Consistency check found ${errors.size} error(s) and ${warnings.size} warning(s)")
+            appendSection("Errors", errors, Color.RED)
+            appendSection("Warnings", warnings, Color.YELLOW)
+        }.trimEnd('\n')
 
-        printSection("Errors", errors, Color.RED)
-        printSection("Warnings", warnings, Color.YELLOW)
-        println()
+        tui.showText("Consistency check", report)
     }
 
-    private fun printSection(header: String, issues: List<Issue>, color: Color) {
+    private fun StringBuilder.appendSection(header: String, issues: List<Issue>, color: Color) {
         if (issues.isEmpty()) return
-        println()
-        println(ColoredString("$header (${issues.size})", color))
+        appendLine()
+        appendLine(ColoredString("$header (${issues.size})", color).toString())
         issues.groupBy { it.check }.forEach { (check, checkIssues) ->
-            println("  $check (${checkIssues.size}):")
-            checkIssues.forEach { println("    - ${it.message}") }
+            appendLine("  $check (${checkIssues.size}):")
+            checkIssues.forEach { appendLine("    - ${it.message}") }
         }
     }
 }

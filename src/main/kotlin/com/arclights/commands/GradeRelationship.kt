@@ -17,6 +17,7 @@ import com.arclights.SingleLineEntity.Companion.verticalConnection
 import com.arclights.SourceCitation
 import com.arclights.SpouseToFamilyLink
 import com.arclights.bfs
+import com.arclights.tui.Tui
 import com.arclights.commands.GradeRelationship.RoleInRelationship.CHILD
 import com.arclights.commands.GradeRelationship.RoleInRelationship.PARENT
 import com.arclights.commands.GradeRelationship.RoleInRelationship.PARTNER
@@ -26,49 +27,21 @@ class GradeRelationship : Command {
 
     override fun getName() = "Grade relationship"
 
-    override fun run(gedcom: Gedcom) {
-        val person1 = gedcom.findPerson("the first person") ?: kotlin.run {
+    override fun run(gedcom: Gedcom, tui: Tui) {
+        val person1 = tui.selectPerson(gedcom, "the first person") ?: return
+        val person2 = tui.selectPerson(gedcom, "the second person") ?: return
+
+        val path = gedcom.findPath(person1, person2)
+        if (path == null) {
+            tui.messageBox(
+                "No relationship",
+                "Could not find relationship between " +
+                    "${person1.names.first().name} and ${person2.names.first().name}"
+            )
             return
         }
-        val person2 = gedcom.findPerson("the second person") ?: kotlin.run {
-            return
-        }
-        println("Grading relationship")
-        val path = gedcom.findPath(person1, person2) ?: kotlin.run {
-            println("Could not find relationship between ${person1.names.first().name} and ${person2.names.first().name}")
-            return
-        }
 
-        println(path.toPrintableString())
-        println()
-    }
-
-    private fun Gedcom.findPerson(personLabel: String): Individual? {
-        print("Please provide the name of $personLabel: ")
-        val name = readln()
-        val matchingName =
-            individuals.values.filter { it.names.any { individualName -> name in individualName.name.lowercase() } }
-
-        if (matchingName.isEmpty()) {
-            println("Found no person with name '$name'")
-            return null
-        }
-
-        return if (matchingName.size == 1) {
-            matchingName[0]
-        } else {
-
-            println("Found multiple matches for name '$name':")
-            matchingName.forEachIndexed { i, individual ->
-                println("$i: ${individual.names[0].name}")
-            }
-            println("Enter the number of the one you want to choose:")
-            val chosenIndex = readln().toInt()
-
-            matchingName[chosenIndex]
-        }
-            .also { println("Found ${it.names[0].name}") }
-
+        tui.showText("Relationship", path.toPrintableString())
     }
 
     private fun Gedcom.findPath(from: Individual, to: Individual): List<RelationshipPart>? {

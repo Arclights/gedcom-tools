@@ -28,3 +28,11 @@ fun <E, I> bfs(
 private fun <T> queueOf(vararg items: T) = mutableListOf(*items)
 private fun <T> MutableList<T>.dequeue(): T = removeFirst()
 private fun <T> MutableList<T>.enqueue(item: T) = add(item)
+
+/** Case-insensitive substring search over every individual's names. */
+fun Gedcom.findPeopleByName(query: String): List<Individual> {
+    val needle = query.lowercase()
+    return individuals.values.filter { individual ->
+        individual.names.any { needle in it.name.lowercase() }
+    }
+}
