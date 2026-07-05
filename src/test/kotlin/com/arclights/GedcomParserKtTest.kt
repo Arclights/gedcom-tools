@@ -68,6 +68,39 @@ class GedcomParserKtTest {
     }
 
     @Test
+    fun appliesHemisphereSignToPlaceCoordinates() {
+        // Given
+        // Southern latitude and western longitude must come out negative.
+        val input = """
+            00 HEAD
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            1 BIRT
+            2 PLAC Sydney
+            3 MAP
+            4 LATI S33.8688
+            4 LONG E151.2093
+            1 DEAT
+            2 PLAC Rio
+            3 MAP
+            4 LATI S22.9068
+            4 LONG W43.1729
+        """.trimIndent().lines()
+
+        // When
+        val actual = parseGedcom(input)
+
+        // Then
+        val events = actual.individuals.getValue(IndividualId("@I1@")).events
+        val birthPlace = (events.filterIsInstance<BirthEvent>().single()).details?.details?.place
+        val deathPlace = (events.filterIsInstance<DeathEvent>().single()).details?.details?.place
+        assertThat(birthPlace?.latitude).isEqualTo(-33.8688)
+        assertThat(birthPlace?.longitude).isEqualTo(151.2093)
+        assertThat(deathPlace?.latitude).isEqualTo(-22.9068)
+        assertThat(deathPlace?.longitude).isEqualTo(-43.1729)
+    }
+
+    @Test
     fun canParseAssociations() {
         // Given
         val input = """

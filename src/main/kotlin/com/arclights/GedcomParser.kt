@@ -648,10 +648,19 @@ private fun parseCoordinates(
     latitudeSetter: (Double) -> Unit
 ) {
     lineIterator.parseByTag(
-        TagParser("LATI") { it.drop(1).toDouble().let(latitudeSetter) },
-        TagParser("LONG") { it.drop(1).toDouble().let(longitudeSetter) }
+        TagParser("LATI") { parseCoordinate(it).let(latitudeSetter) },
+        TagParser("LONG") { parseCoordinate(it).let(longitudeSetter) }
     )
 }
+
+// GEDCOM stores coordinates with a hemisphere prefix (N/S for latitude, E/W for
+// longitude). N/E are positive, S/W negative; the magnitude follows the letter.
+private fun parseCoordinate(value: String): Double =
+    when (value.firstOrNull()?.uppercaseChar()) {
+        'N', 'E' -> value.drop(1).toDouble()
+        'S', 'W' -> -value.drop(1).toDouble()
+        else -> value.toDouble()
+    }
 
 private fun parseAddress(lineIterator: LineIterator): Address {
     var address1: String? = null
