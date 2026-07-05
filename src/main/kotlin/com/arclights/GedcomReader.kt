@@ -18,6 +18,17 @@ fun decodeGedcomBytes(bytes: ByteArray): List<String> =
     String(bytes, detectGedcomCharset(bytes)).lines()
 
 fun detectGedcomCharset(bytes: ByteArray): Charset {
+    // A UTF-16 byte-order mark has to be detected before the ISO-8859-1 scan below:
+    // in a UTF-16 file every other byte is a null, so "1 CHAR UNICODE" never matches
+    // as a plain string and the declared encoding would be missed. The UTF_16 charset
+    // uses the BOM to pick the byte order.
+    if (bytes.size >= 2 &&
+        ((bytes[0] == 0xFE.toByte() && bytes[1] == 0xFF.toByte()) ||
+            (bytes[0] == 0xFF.toByte() && bytes[1] == 0xFE.toByte()))
+    ) {
+        return Charsets.UTF_16
+    }
+
     // GEDCOM's own encoding is declared inside the file, so this first pass has to
     // use a charset that can decode any byte sequence without throwing. ISO-8859-1
     // maps every byte to a character 1:1, and the CHAR tag's value is always plain
