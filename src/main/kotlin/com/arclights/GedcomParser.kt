@@ -926,10 +926,6 @@ class LineIterator(lines: List<Line>) : PeekableIterator<Line>(lines) {
         val currentDepth = superLine.depth()
         while (hasNext() && peek().depth() > currentDepth) {
             val subLine = next()
-            if (subLine.inProperFormat().not()) {
-                logger.error("Could not parse line ${subLine.lineNbr}: ${subLine.line}")
-                continue
-            }
             val matchedParser = parsersByKey[property(subLine)]
             if (matchedParser != null) {
                 propertyParser(matchedParser)(value(subLine))
