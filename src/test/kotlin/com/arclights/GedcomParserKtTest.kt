@@ -101,6 +101,29 @@ class GedcomParserKtTest {
     }
 
     @Test
+    fun aMalformedConfirmedValueDoesNotAbortParsing() {
+        // Given
+        // A stray string where the parser expects Y/NULL (a known MyHeritage quirk).
+        val input = """
+            00 HEAD
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            1 DEAT nonsense
+            2 DATE 3 MAR 1950
+        """.trimIndent().lines()
+
+        // When
+        val logs = captureLogs("GedcomParser") { parseGedcom(input) }
+        val actual = parseGedcom(input)
+
+        // Then
+        val death = actual.individuals.getValue(IndividualId("@I1@")).events.filterIsInstance<DeathEvent>().single()
+        assertThat(death.confirmed).isFalse()
+        assertThat(death.details?.details?.date).isNotNull()
+        assertThat(logs).anyMatch { it.level == Level.WARN && it.formattedMessage.contains("nonsense") }
+    }
+
+    @Test
     fun canParseAssociations() {
         // Given
         val input = """

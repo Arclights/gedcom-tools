@@ -141,15 +141,9 @@ private fun parseIndividual(id: String, lineIterator: LineIterator): Individual 
         multimediaLinkParser(multimediaLinks),
         sourceCitationParser(sourceCitations, lineIterator),
         TagParser("BIRT") { events.add(parseBirthEvent(lineIterator)) },
-        TagParser("DEAT") { events.add(parseDeathEvent(it.toConfirmed(), lineIterator)) },
+        TagParser("DEAT") { events.add(parseDeathEvent(parseConfirmed(it, "death event of '$id'"), lineIterator)) },
         TagParser("CHR") {
-            try {
-                it.toConfirmed()
-            } catch (e: IllegalArgumentException) {
-                // For some reason, MyHeritage sometimes sets a string in the Y/NULL place
-                logger.error("Invalid line '${lineIterator.current()}', cannot parse christening event", e)
-                null
-            }?.let { confirmed -> events.add(parseChristeningEvent(confirmed, lineIterator)) }
+            events.add(parseChristeningEvent(parseConfirmed(it, "christening event of '$id'"), lineIterator))
         },
 //                "BURI",
 //                "CREM",
@@ -1129,5 +1123,16 @@ private fun String?.toConfirmed() = when (this) {
     "" -> false
     else -> throw IllegalArgumentException("'$this' is not a valid confirmed string")
 }
+
+// The Y/NULL "confirmed" slot is occasionally filled with an arbitrary string by
+// exporters like MyHeritage. Rather than aborting the whole parse, log it and treat
+// the event as unconfirmed so the rest of its detail is still captured.
+private fun parseConfirmed(value: String?, context: String): Boolean =
+    try {
+        value.toConfirmed()
+    } catch (e: IllegalArgumentException) {
+        logger.warn("Unrecognized confirmed value '$value' for $context, treating as unconfirmed")
+        false
+    }
 
 private fun Char.notSpace() = this != ' '
