@@ -27,7 +27,11 @@ fun parseGedcom(lines: List<String>): Gedcom {
         },
         ContentParser("SOUR") { id ->
             parseSource(id, lineIterator).let { parseContainer.sources.add(it) }
-        }
+        },
+        // These level-0 records are valid GEDCOM but not consumed by this tool. They
+        // are skipped like any unrecognized record, just without a warning per file.
+        // HEAD/TRLR are tag-only lines (no xref) so their "content" is empty.
+        knownUnhandled = setOf("", "SUBM", "SUBN", "REPO", "NOTE", "OBJE")
     )
 
     logger.debug("parsed")
@@ -883,13 +887,14 @@ data class Line(val lineNbr: Int, val line: String) {
 
 private fun List<Line>.lineIterator() = LineIterator(this)
 class LineIterator(lines: List<Line>) : PeekableIterator<Line>(lines) {
-    fun parseByContent(vararg contentParsers: ContentParser) {
+    fun parseByContent(vararg contentParsers: ContentParser, knownUnhandled: Set<String> = emptySet()) {
         parseByProperty(
             Line::content,
             Line::tag,
             contentParsers,
             ContentParser::content,
-            ContentParser::parser
+            ContentParser::parser,
+            knownUnhandled
         )
     }
 
@@ -908,7 +913,8 @@ class LineIterator(lines: List<Line>) : PeekableIterator<Line>(lines) {
         value: (Line) -> String,
         propertyParsers: Array<T>,
         propertyParserKey: (T) -> String,
-        propertyParser: (T) -> (String) -> Unit
+        propertyParser: (T) -> (String) -> Unit,
+        knownUnhandled: Set<String> = emptySet()
     ) {
         // Index the parsers by key once so each sub-line is an O(1) lookup rather than a
         // linear scan; INDI alone registers ~30 parsers. putIfAbsent keeps the first
@@ -928,7 +934,11 @@ class LineIterator(lines: List<Line>) : PeekableIterator<Line>(lines) {
             if (matchedParser != null) {
                 propertyParser(matchedParser)(value(subLine))
             } else {
-                logger.warn("No parser found for property ${property(subLine)}, skipping line ${subLine.lineNbr}: ${subLine.line}")
+                if (property(subLine) in knownUnhandled) {
+                    logger.debug("Skipping unhandled record at line ${subLine.lineNbr}: ${subLine.line}")
+                } else {
+                    logger.warn("No parser found for property ${property(subLine)}, skipping line ${subLine.lineNbr}: ${subLine.line}")
+                }
                 skipSubtree(subLine.depth())
             }
         }

@@ -124,6 +124,27 @@ class GedcomParserKtTest {
     }
 
     @Test
+    fun knownStructuralRecordsAreSkippedWithoutAWarning() {
+        // Given
+        val input = """
+            0 HEAD
+            0 @U1@ SUBM
+            1 NAME Submitter
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            0 TRLR
+        """.trimIndent().lines()
+
+        // When
+        val logs = captureLogs("GedcomParser") { parseGedcom(input) }
+        val actual = parseGedcom(input)
+
+        // Then
+        assertThat(actual.individuals).containsKey(IndividualId("@I1@"))
+        assertThat(logs).noneMatch { it.level == Level.WARN && it.formattedMessage.contains("No parser found") }
+    }
+
+    @Test
     fun canParseAssociations() {
         // Given
         val input = """
