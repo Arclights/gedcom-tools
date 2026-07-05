@@ -8,6 +8,8 @@ import com.arclights.DeathEvent
 import com.arclights.FamilyGroup
 import com.arclights.Gedcom
 import com.arclights.Individual
+import com.arclights.IndividualEvent
+import com.arclights.IndividualEventDetails
 import com.arclights.MultiLineEntity
 import com.arclights.PrintMatrix
 import com.arclights.PrintMatrixEntity
@@ -161,27 +163,31 @@ fun List<GradeRelationship.RelationshipPart>.toPrintableMatrix(): PrintMatrix {
 }
 
 fun Individual.toPrintMatrixEntity(): PrintMatrixEntity {
-    val (birthGrade, deathGrade, minGrade, maxGrade, averageGrade) = getSourceGrade()
-    val birthDate = events.filterIsInstance<BirthEvent>()
-        .firstNotNullOfOrNull { it.details?.details?.date }
-        ?.toDisplayString()
-        ?: "unknown date"
-    val deathDate = events.filterIsInstance<DeathEvent>()
-        .firstNotNullOfOrNull { it.details?.details?.date }
-        ?.toDisplayString()
-        ?: "unknown date"
-    return MultiLineEntity(
-        listOf(
-            ColoredString(names.first().name),
-            ColoredString("Birth: $birthDate ($birthGrade)", birthGrade.toColor()),
-            ColoredString("Death: $deathDate ($deathGrade)", deathGrade.toColor())
-        ),
-        color = averageGrade.toColor()
-    )
+    val (birthGrade, deathGrade, _, _, averageGrade) = getSourceGrade()
+    val lines = buildList {
+        add(ColoredString(names.first().name))
+        birthGrade?.let {
+            val date = eventDateText<BirthEvent> { event -> event.details }
+            add(ColoredString("Birth: $date ($it)", it.toColor()))
+        }
+        deathGrade?.let {
+            val date = eventDateText<DeathEvent> { event -> event.details }
+            add(ColoredString("Death: $date ($it)", it.toColor()))
+        }
+    }
+    return MultiLineEntity(lines, color = averageGrade.toColor())
 }
 
-private fun QUAY.toColor() = when (this) {
-    QUAY.UNRELIABLE -> Color.RED
+private inline fun <reified T : IndividualEvent> Individual.eventDateText(
+    details: (T) -> IndividualEventDetails?
+): String =
+    events.filterIsInstance<T>()
+        .firstNotNullOfOrNull { details(it)?.details?.date }
+        ?.toDisplayString()
+        ?: "unknown date"
+
+private fun QUAY?.toColor() = when (this) {
+    QUAY.UNRELIABLE, null -> Color.RED
     QUAY.QUESTIONABLE -> Color.YELLOW
     QUAY.SECONDARY -> Color.YELLOW
     QUAY.PRIMARY -> Color.GREEN
@@ -189,55 +195,40 @@ private fun QUAY.toColor() = when (this) {
 }
 
 data class IndividualGrade(
-    val birthGrade: QUAY,
-    val deathGrade: QUAY,
-    val minGrade: QUAY,
-    val maxGrade: QUAY,
-    val averageGrade: QUAY
+    val birthGrade: QUAY?,
+    val deathGrade: QUAY?,
+    val minGrade: QUAY?,
+    val maxGrade: QUAY?,
+    val averageGrade: QUAY?
 )
 
 fun Individual.getSourceGrade(): IndividualGrade {
-    val birthSourceGrade = events
-        .firstOrNull { it is BirthEvent }
-        ?.let { it as BirthEvent }
-        ?.details
-        ?.details
-        ?.sourceCitations
-        ?.mapNotNull(SourceCitation::qualityAssessment)
-        ?.maxByOrNull(QUAY::value)
-        ?: QUAY.UNRELIABLE
+    val birthGrade = eventSourceGrade<BirthEvent> { it.details }
+    val deathGrade = eventSourceGrade<DeathEvent> { it.details }
 
-    val deathSourceGrade = events
-        .firstOrNull { it is DeathEvent }
-        ?.let { it as DeathEvent }
-        ?.details
-        ?.details
-        ?.sourceCitations
-        ?.mapNotNull(SourceCitation::qualityAssessment)
-        ?.maxByOrNull(QUAY::value)
-        ?: QUAY.UNRELIABLE
+    val presentGrades = listOfNotNull(birthGrade, deathGrade)
+    val minGrade = presentGrades.minByOrNull(QUAY::value)
+    val maxGrade = presentGrades.maxByOrNull(QUAY::value)
+    val averageGrade = presentGrades
+        .takeIf(List<QUAY>::isNotEmpty)
+        ?.let { grades -> grades.sumOf(QUAY::value) / grades.size }
+        ?.let(QUAY::fromValue)
 
-    val minGrade = listOf(birthSourceGrade, deathSourceGrade)
-        .minOf { it.value }
-        .let { QUAY.fromValue(it) }
-        ?: QUAY.UNRELIABLE
+    return IndividualGrade(birthGrade, deathGrade, minGrade, maxGrade, averageGrade)
+}
 
-    val maxGrade = listOf(birthSourceGrade, deathSourceGrade)
-        .maxOf { it.value }
-        .let { QUAY.fromValue(it) }
+/**
+ * The source-quality grade of the given event type, or `null` when the person has no such event.
+ * A present event with no graded source citations counts as [QUAY.UNRELIABLE].
+ */
+private inline fun <reified T : IndividualEvent> Individual.eventSourceGrade(
+    details: (T) -> IndividualEventDetails?
+): QUAY? {
+    val matching = events.filterIsInstance<T>()
+    if (matching.isEmpty()) return null
+    return matching
+        .flatMap { details(it)?.details?.sourceCitations.orEmpty() }
+        .mapNotNull(SourceCitation::qualityAssessment)
+        .maxByOrNull(QUAY::value)
         ?: QUAY.UNRELIABLE
-
-    val averageGrade = listOf(birthSourceGrade, deathSourceGrade)
-        .sumOf { it.value }
-        .let { it / 2 }
-        .let { QUAY.fromValue(it) }
-        ?: QUAY.UNRELIABLE
-
-    return IndividualGrade(
-        birthSourceGrade,
-        deathSourceGrade,
-        minGrade,
-        maxGrade,
-        averageGrade
-    )
 }
