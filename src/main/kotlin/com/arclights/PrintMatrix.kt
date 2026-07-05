@@ -1,23 +1,5 @@
 package com.arclights
 
-fun String.padTo(widthToPadTo: Int): String {
-    val diff = widthToPadTo - length
-    val padding = diff / 2
-    val leftPadding = padding
-    val rightPadding = if (diff % 2 != 0) padding + 1 else padding
-
-    return " ".repeat(leftPadding) + this + " ".repeat(rightPadding)
-}
-
-fun <T> List<T>.padTo(toPadTo: Int, padder: T): List<T> {
-    val diff = toPadTo - size
-    val padding = diff / 2
-    val prePadding = padding
-    val postPadding = if (diff % 2 != 0) padding + 1 else padding
-
-    return List(prePadding) { padder } + this + List(postPadding) { padder }
-}
-
 data class PrintMatrix(private val entries: MutableMap<Pair<Int, Int>, PrintMatrixEntity> = mutableMapOf()) {
     fun put(column: Int, row: Int, value: PrintMatrixEntity) {
         entries[column to row] = value
@@ -25,68 +7,90 @@ data class PrintMatrix(private val entries: MutableMap<Pair<Int, Int>, PrintMatr
 
     operator fun get(column: Int, row: Int) = entries[column to row]
 
-    override fun toString(): String {
-        val minColumn = 0
+    /** Column widths (indexed 0..maxColumn), row heights, and the occupied bounds — the shared geometry. */
+    private data class Layout(
+        val columnWidths: List<Int>,
+        val rowHeights: Map<Int, Int>,
+        val minRow: Int,
+        val maxRow: Int,
+        val maxColumn: Int
+    )
+
+    private fun layout(): Layout {
         val maxColumn = entries.keys.maxOf { it.first }
         val minRow = entries.keys.minOf { it.second }
         val maxRow = entries.keys.maxOf { it.second }
 
-        val columnWidths = (minColumn..maxColumn).map { column ->
-            val entitiesInColumn = entries
-                .filter { (key, _) -> key.first == column }
-                .values
-            entitiesInColumn.maxOf { it.width() }
+        val columnWidths = (0..maxColumn).map { column ->
+            entries.filterKeys { it.first == column }.values.maxOfOrNull { it.width() } ?: 0
         }
-
         val rowHeights = (minRow..maxRow).associateWith { row ->
-            val entitiesInRow = entries
-                .filter { (key, _) -> key.second == row }
-                .values
-            entitiesInRow.maxOf { it.height() }
+            entries.filterKeys { it.second == row }.values.maxOfOrNull { it.height() } ?: 1
         }
-
-        val sb = StringBuilder()
-
-        for (row in (maxRow downTo minRow)) {
-            val rowHeight = rowHeights[row]!!
-            val rowLines = List(rowHeight) { StringBuilder() }
-
-            var column = minColumn
-            while (column <= maxColumn) {
-                val entity = entries[column to row] ?: SingleLineEntity("")
-
-                val columnWidth = if (entity.spanTwoColumns) {
-                    columnWidths[column] + columnWidths[column + 1]
-                } else {
-                    columnWidths[column]
-                }
-
-                entity.toLines(columnWidth, rowHeight).forEachIndexed { i, line -> rowLines[i].append(line) }
-                if (entity.spanTwoColumns) {
-                    column++
-                }
-                column++
-            }
-            rowLines.forEachIndexed { i, line ->
-                sb.append(line)
-                if (i < rowLines.size - 1) {
-                    sb.append("\n")
-                }
-            }
-            if (row != minRow) {
-                sb.append("\n")
-            }
-        }
-
-        return sb.toString()
+        return Layout(columnWidths, rowHeights, minRow, maxRow, maxColumn)
     }
+
+    /** The total size, in characters, the matrix occupies when painted. */
+    fun size(): MatrixSize {
+        if (entries.isEmpty()) return MatrixSize(0, 0)
+        val layout = layout()
+        return MatrixSize(layout.columnWidths.sum(), layout.rowHeights.values.sum())
+    }
+
+    /**
+     * Paints every entity onto [surface] using absolute character coordinates. Rows run top (highest
+     * row index) to bottom; a cell that spans two columns is drawn at its own column but sized to
+     * cover both.
+     */
+    fun paint(surface: CellSurface) {
+        if (entries.isEmpty()) return
+        val layout = layout()
+
+        val columnX = IntArray(layout.maxColumn + 2)
+        for (column in 1..layout.maxColumn + 1) {
+            columnX[column] = columnX[column - 1] + layout.columnWidths[column - 1]
+        }
+
+        var y = 0
+        for (row in layout.maxRow downTo layout.minRow) {
+            val rowHeight = layout.rowHeights.getValue(row)
+            for (column in 0..layout.maxColumn) {
+                val entity = entries[column to row] ?: continue
+                val cellWidth = if (entity.spanTwoColumns) {
+                    layout.columnWidths[column] + layout.columnWidths[column + 1]
+                } else {
+                    layout.columnWidths[column]
+                }
+                entity.paint(surface, columnX[column], y, cellWidth, rowHeight)
+            }
+            y += rowHeight
+        }
+    }
+}
+
+/** The character dimensions a [PrintMatrix] occupies when painted. */
+data class MatrixSize(val width: Int, val height: Int)
+
+enum class Orientation { VERTICAL, HORIZONTAL }
+
+/**
+ * A renderer-agnostic surface an entity can paint itself onto, using absolute character coordinates.
+ * The surface decides which glyphs/colors to actually emit (e.g. the TUI draws real box-drawing
+ * characters and colors).
+ */
+interface CellSurface {
+    fun drawBox(x: Int, y: Int, width: Int, height: Int, color: Color?)
+    fun putText(x: Int, y: Int, text: String, color: Color?)
+    fun putConnector(x: Int, y: Int, orientation: Orientation)
 }
 
 abstract class PrintMatrixEntity(var spanTwoColumns: Boolean = false) {
     abstract fun width(): Int
 
     abstract fun height(): Int
-    abstract fun toLines(padToWidth: Int, padToHeight: Int): List<String>
+
+    /** Paints this entity into the [cellWidth] x [cellHeight] cell whose top-left corner is ([x], [y]). */
+    abstract fun paint(surface: CellSurface, x: Int, y: Int, cellWidth: Int, cellHeight: Int)
 }
 
 data class SingleLineEntity(private val entity: String) :
@@ -98,8 +102,18 @@ data class SingleLineEntity(private val entity: String) :
 
     override fun width(): Int = entity.length
     override fun height() = 1
-    override fun toLines(padToWidth: Int, padToHeight: Int) =
-        listOf(entity.padTo(padToWidth)).padTo(padToHeight, " ".repeat(padToWidth))
+
+    override fun paint(surface: CellSurface, x: Int, y: Int, cellWidth: Int, cellHeight: Int) {
+        if (entity.isEmpty()) return
+        // Centered within the cell.
+        val left = x + (cellWidth - entity.length) / 2
+        val top = y + (cellHeight - 1) / 2
+        when (entity) {
+            "|" -> surface.putConnector(left, top, Orientation.VERTICAL)
+            "-" -> surface.putConnector(left, top, Orientation.HORIZONTAL)
+            else -> surface.putText(left, top, entity, null)
+        }
+    }
 }
 
 data class MultiLineEntity(
@@ -111,40 +125,32 @@ data class MultiLineEntity(
     override fun width() = lines.maxOf(ColoredString::length) + 2 + marginSum
     override fun height() = lines.size + 2
 
-    override fun toLines(padToWidth: Int, padToHeight: Int): List<String> {
-        val marginString = " ".repeat(margin)
-        val topAndBottomLine =
-            "$marginString${Color.colorize("+${"-".repeat(padToWidth - 2 - marginSum)}+", color)}$marginString"
-        return listOf(topAndBottomLine) +
-                lines.map {
-                    listOf(
-                        marginString,
-                        Color.colorize("|", color),
-                        it.padTo(padToWidth - 2 - marginSum),
-                        Color.colorize("|", color),
-                        marginString
-                    ).joinToString(separator = "")
-                } +
-                listOf(topAndBottomLine)
+    override fun paint(surface: CellSurface, x: Int, y: Int, cellWidth: Int, cellHeight: Int) {
+        val boxX = x + margin
+        val boxWidth = cellWidth - marginSum
+        val boxHeight = lines.size + 2
+        surface.drawBox(boxX, y, boxWidth, boxHeight, color)
+        val innerWidth = boxWidth - 2
+        lines.forEachIndexed { i, line ->
+            val left = boxX + 1 + (innerWidth - line.length) / 2
+            surface.putText(left, y + 1 + i, line.text, line.textColor)
+        }
     }
 }
 
 data class ColoredString(private val string: String, private val color: Color? = null) {
     val length = string.length
 
+    /** The raw text, without any color escapes. */
+    val text get() = string
+
+    /** The color this string should be rendered in, if any. */
+    val textColor get() = color
+
     override fun toString() = Color.colorize(string, color)
-
-    fun padTo(widthToPadTo: Int): String {
-        val diff = widthToPadTo - length
-        val padding = diff / 2
-        val leftPadding = padding
-        val rightPadding = if (diff % 2 != 0) padding + 1 else padding
-
-        return " ".repeat(leftPadding) + this + " ".repeat(rightPadding)
-    }
 }
 
-enum class Color(private val code: Int) {
+enum class Color(val code: Int) {
     RED(124),
     YELLOW(220),
     GREEN(34);

@@ -2,6 +2,7 @@ package com.arclights.tui
 
 import com.arclights.Gedcom
 import com.arclights.Individual
+import com.arclights.PrintMatrix
 import com.arclights.commands.commands
 import com.arclights.findPeopleByName
 import com.googlecode.lanterna.TextColor
@@ -74,6 +75,22 @@ class Tui : AutoCloseable {
             .setDescription("Found ${matches.size} people matching '$query'. Select one:")
         matches.forEach { builder.addListItem(PersonChoice(it)) }
         return builder.build().showDialog(gui)?.individual
+    }
+
+    /** Shows a relationship [matrix], drawn with native TUI components, in a scrollable window. */
+    fun showMatrix(title: String, matrix: PrintMatrix) {
+        val window = BasicWindow(title)
+        window.setHints(listOf(Window.Hint.CENTERED, Window.Hint.EXPANDED))
+
+        val view = RelationshipMatrixView(matrix) { window.close() }
+            .apply { layoutData = LinearLayout.createLayoutData(LinearLayout.Alignment.Fill, LinearLayout.GrowPolicy.CanGrow) }
+
+        window.component = Panel(LinearLayout(Direction.VERTICAL)).apply {
+            addComponent(view)
+            addComponent(Label("(arrows/PgUp/PgDn to scroll, Tab to reach Close, Esc to close)"))
+            addComponent(Button("Close") { window.close() })
+        }
+        gui.addWindowAndWait(window)
     }
 
     /** Shows [content] (which may contain color escapes) in a scrollable, dismissable window. */

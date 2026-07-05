@@ -41,7 +41,7 @@ class GradeRelationship : Command {
             return
         }
 
-        tui.showText("Relationship", path.toPrintableString())
+        tui.showMatrix("Relationship", path.toPrintableMatrix())
     }
 
     private fun Gedcom.findPath(from: Individual, to: Individual): List<RelationshipPart>? {
@@ -178,11 +178,6 @@ private fun QUAY.toColor() = when (this) {
     QUAY.SECONDARY -> Color.YELLOW
     QUAY.PRIMARY -> Color.GREEN
     QUAY.DIRECT -> Color.GREEN
-}
-
-fun List<GradeRelationship.RelationshipPart>.toPrintableString(): String {
-    val matrix = toPrintableMatrix()
-    return matrix.toString()
 }
 
 data class IndividualGrade(

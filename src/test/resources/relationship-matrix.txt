@@ -1,0 +1,12 @@
+ +--------------------------------------+
+ |               person2                |
+ |          Birth: UNRELIABLE           |
+ |          Death: UNRELIABLE           |
+ +--------------------------------------+
+          |                    |
+          |                    |
+ +-----------------+  +-----------------+   +-----------------+
+ |     person1     |  |     person3     |   |     person4     |
+ |Birth: UNRELIABLE|  |Birth: UNRELIABLE| - |Birth: UNRELIABLE|
+ |Death: UNRELIABLE|  |Death: UNRELIABLE|   |Death: UNRELIABLE|
+ +-----------------+  +-----------------+   +-----------------+
