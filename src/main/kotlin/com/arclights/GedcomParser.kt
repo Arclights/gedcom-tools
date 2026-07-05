@@ -910,6 +910,12 @@ class LineIterator(lines: List<Line>) : PeekableIterator<Line>(lines) {
         propertyParserKey: (T) -> String,
         propertyParser: (T) -> (String) -> Unit
     ) {
+        // Index the parsers by key once so each sub-line is an O(1) lookup rather than a
+        // linear scan; INDI alone registers ~30 parsers. putIfAbsent keeps the first
+        // registered parser on a key collision, matching the previous firstOrNull scan.
+        val parsersByKey = LinkedHashMap<String, T>(propertyParsers.size)
+        propertyParsers.forEach { parser -> parsersByKey.putIfAbsent(propertyParserKey(parser), parser) }
+
         val superLine = current()
         val currentDepth = superLine.depth()
         while (hasNext() && peek().depth() > currentDepth) {
@@ -918,7 +924,7 @@ class LineIterator(lines: List<Line>) : PeekableIterator<Line>(lines) {
                 logger.error("Could not parse line ${subLine.lineNbr}: ${subLine.line}")
                 continue
             }
-            val matchedParser = propertyParsers.firstOrNull { parser -> propertyParserKey(parser) == property(subLine) }
+            val matchedParser = parsersByKey[property(subLine)]
             if (matchedParser != null) {
                 propertyParser(matchedParser)(value(subLine))
             } else {
