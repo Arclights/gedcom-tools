@@ -82,7 +82,7 @@ private fun IndividualEventDetails?.toDisplayString(): String {
     return "$dateText in $placeText"
 }
 
-private fun DateValue.toDisplayString(): String = when (this) {
+internal fun DateValue.toDisplayString(): String = when (this) {
     is Date -> {
         val calendarPrefix = dateCalendarEscape?.takeIf { it != Calendars.GREGORIAN }?.let { "$it " } ?: ""
         "$calendarPrefix$dateCalendar"

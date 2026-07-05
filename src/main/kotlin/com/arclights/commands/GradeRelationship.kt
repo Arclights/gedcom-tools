@@ -162,11 +162,19 @@ fun List<GradeRelationship.RelationshipPart>.toPrintableMatrix(): PrintMatrix {
 
 fun Individual.toPrintMatrixEntity(): PrintMatrixEntity {
     val (birthGrade, deathGrade, minGrade, maxGrade, averageGrade) = getSourceGrade()
+    val birthDate = events.filterIsInstance<BirthEvent>()
+        .firstNotNullOfOrNull { it.details?.details?.date }
+        ?.toDisplayString()
+        ?: "unknown date"
+    val deathDate = events.filterIsInstance<DeathEvent>()
+        .firstNotNullOfOrNull { it.details?.details?.date }
+        ?.toDisplayString()
+        ?: "unknown date"
     return MultiLineEntity(
         listOf(
             ColoredString(names.first().name),
-            ColoredString("Birth: $birthGrade", birthGrade.toColor()),
-            ColoredString("Death: $deathGrade", deathGrade.toColor())
+            ColoredString("Birth: $birthDate ($birthGrade)", birthGrade.toColor()),
+            ColoredString("Death: $deathDate ($deathGrade)", deathGrade.toColor())
         ),
         color = averageGrade.toColor()
     )
