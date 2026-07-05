@@ -4,7 +4,7 @@ import com.arclights.BirthEvent
 import com.arclights.Calendars
 import com.arclights.Date
 import com.arclights.DeathEvent
-import com.arclights.EvenDetail
+import com.arclights.EventDetail
 import com.arclights.FamilyEvent
 import com.arclights.FamilyEventType
 import com.arclights.FamilyGroup
@@ -296,22 +296,22 @@ class ConsistencyCheckTest {
     )
 
     private fun birthEvent(date: Date) = BirthEvent(
-        details = IndividualEventDetails(EvenDetail(date = date), age = null)
+        details = IndividualEventDetails(EventDetail(date = date), age = null)
     )
 
     private fun deathEvent(date: Date) = DeathEvent(
         confirmed = true,
-        details = IndividualEventDetails(EvenDetail(date = date), age = null)
+        details = IndividualEventDetails(EventDetail(date = date), age = null)
     )
 
     private fun generalEvent(type: String, date: Date) = GeneralIndividualEvent(
         type = type,
-        details = IndividualEventDetails(EvenDetail(date = date), age = null)
+        details = IndividualEventDetails(EventDetail(date = date), age = null)
     )
 
     private fun marriage(date: Date) = FamilyEvent(
         eventType = FamilyEventType.MARRIAGE,
-        detail = com.arclights.FamilyEventDetail(detail = EvenDetail(date = date))
+        detail = com.arclights.FamilyEventDetail(detail = EventDetail(date = date))
     )
 
     private fun person(

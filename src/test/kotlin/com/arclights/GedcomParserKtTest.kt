@@ -62,8 +62,8 @@ class GedcomParserKtTest {
         // Then
         val individual = actual.individuals.getValue(IndividualId("@I1@"))
         assertThat(individual.attributes).containsExactlyInAnyOrder(
-            GeneralIndividualAttribute("OCCU", "Farmer", EvenDetail(place = Place("Springfield"))),
-            GeneralIndividualAttribute("TITL", "Reverend", EvenDetail())
+            GeneralIndividualAttribute("OCCU", "Farmer", EventDetail(place = Place("Springfield"))),
+            GeneralIndividualAttribute("TITL", "Reverend", EventDetail())
         )
     }
 
@@ -384,7 +384,7 @@ class GedcomParserKtTest {
                                 FamilyEvent(
                                     FamilyEventType.MARRIAGE,
                                     FamilyEventDetail(
-                                        detail = EvenDetail(
+                                        detail = EventDetail(
                                             date = Date(
                                                 Calendars.GREGORIAN,
                                                 GregorianCalendar(
@@ -432,7 +432,7 @@ class GedcomParserKtTest {
                                 FamilyEvent(
                                     eventType = FamilyEventType.MARRIAGE,
                                     detail = FamilyEventDetail(
-                                        detail = EvenDetail()
+                                        detail = EventDetail()
                                     )
                                 )
                             )

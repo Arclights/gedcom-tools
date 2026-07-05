@@ -4,7 +4,7 @@ import com.arclights.BirthEvent
 import com.arclights.Calendars
 import com.arclights.ChildToFamilyLink
 import com.arclights.Date
-import com.arclights.EvenDetail
+import com.arclights.EventDetail
 import com.arclights.FamilyGroup
 import com.arclights.FamilyGroupId
 import com.arclights.Gedcom
@@ -36,7 +36,7 @@ class PersonInfoTest {
             events = listOf(
                 BirthEvent(
                     details = IndividualEventDetails(
-                        details = EvenDetail(
+                        details = EventDetail(
                             date = Date(
                                 Calendars.GREGORIAN,
                                 GregorianCalendar(

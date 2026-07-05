@@ -45,7 +45,7 @@ interface IndividualAttribute
 data class GeneralIndividualAttribute(
     val type: String,
     val value: String,
-    val detail: EvenDetail
+    val detail: EventDetail
 ) : IndividualAttribute
 
 data class ChildToFamilyLink(
@@ -90,7 +90,7 @@ data class GeneralIndividualEvent(
 ) : IndividualEvent
 
 data class IndividualEventDetails(
-    val details: EvenDetail,
+    val details: EventDetail,
     val age: String? // Extend, see AGE_AT_EVENT specification
 )
 
@@ -147,10 +147,10 @@ data class FamilyEvent(
 data class FamilyEventDetail(
     val husbandAge: String? = null,
     val wifeAge: String? = null,
-    val detail: EvenDetail?
+    val detail: EventDetail?
 )
 
-data class EvenDetail(
+data class EventDetail(
     val type: String? = null,
     val date: DateValue? = null,
     val place: Place? = null,

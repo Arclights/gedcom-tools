@@ -429,7 +429,7 @@ private fun parseFamilyEventPersonAge(lineIterator: LineIterator): String? {
 
 // The EVENT_DETAIL substructure (TYPE, DATE, PLAC, ADDR, NOTE, SOUR, OBJE) is shared
 // by every event and attribute. This accumulator collects those fields as its tag
-// parsers fire and builds the EvenDetail, so each caller only adds its own extra tags.
+// parsers fire and builds the EventDetail, so each caller only adds its own extra tags.
 private class EventDetailAccumulator {
     var type: String? = null
     var date: DateValue? = null
@@ -449,7 +449,7 @@ private class EventDetailAccumulator {
         multimediaLinkParser(multimediaLinks)
     )
 
-    fun build() = EvenDetail(type, date, place, address, notes, sourceCitations, multimediaLinks)
+    fun build() = EventDetail(type, date, place, address, notes, sourceCitations, multimediaLinks)
 }
 
 // INDIVIDUAL_EVENT_DETAIL wraps EVENT_DETAIL with an AGE at the time of the event.
