@@ -1,7 +1,9 @@
 package com.arclights.commands
 
+import com.arclights.BirthEvent
 import com.arclights.Color
 import com.arclights.ColoredString
+import com.arclights.DeathEvent
 import com.arclights.Individual
 import com.arclights.IndividualId
 import com.arclights.IndividualName
@@ -18,55 +20,55 @@ class GradeRelationshipTest {
         // Given
         val rp1 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.UNKNOWN,
-            Individual(id = IndividualId("1"), names = listOf(IndividualName("person1")))
+            Individual(id = IndividualId("1"), names = listOf(IndividualName("person1")), events = listOf(BirthEvent(), DeathEvent(confirmed = false)))
         )
         val rp2 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.PARENT,
-            Individual(id = IndividualId("2"), names = listOf(IndividualName("person2")))
+            Individual(id = IndividualId("2"), names = listOf(IndividualName("person2")), events = listOf(BirthEvent(), DeathEvent(confirmed = false)))
         )
         val rp3 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.PARENT,
-            Individual(id = IndividualId("3"), names = listOf(IndividualName("person3")))
+            Individual(id = IndividualId("3"), names = listOf(IndividualName("person3")), events = listOf(BirthEvent(), DeathEvent(confirmed = false)))
         )
         val rp4 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.PARTNER,
-            Individual(id = IndividualId("4"), names = listOf(IndividualName("person4")))
+            Individual(id = IndividualId("4"), names = listOf(IndividualName("person4")), events = listOf(BirthEvent(), DeathEvent(confirmed = false)))
         )
         val rp5 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.CHILD,
-            Individual(id = IndividualId("5"), names = listOf(IndividualName("person5")))
+            Individual(id = IndividualId("5"), names = listOf(IndividualName("person5")), events = listOf(BirthEvent(), DeathEvent(confirmed = false)))
         )
         val rp6 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.PARTNER,
-            Individual(id = IndividualId("6"), names = listOf(IndividualName("person6")))
+            Individual(id = IndividualId("6"), names = listOf(IndividualName("person6")), events = listOf(BirthEvent(), DeathEvent(confirmed = false)))
         )
         val rp7 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.PARENT,
-            Individual(id = IndividualId("7"), names = listOf(IndividualName("person7")))
+            Individual(id = IndividualId("7"), names = listOf(IndividualName("person7")), events = listOf(BirthEvent(), DeathEvent(confirmed = false)))
         )
         val rp8 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.PARENT,
-            Individual(id = IndividualId("8"), names = listOf(IndividualName("person8")))
+            Individual(id = IndividualId("8"), names = listOf(IndividualName("person8")), events = listOf(BirthEvent(), DeathEvent(confirmed = false)))
         )
         val rp9 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.PARTNER,
-            Individual(id = IndividualId("9"), names = listOf(IndividualName("person9")))
+            Individual(id = IndividualId("9"), names = listOf(IndividualName("person9")), events = listOf(BirthEvent(), DeathEvent(confirmed = false)))
         )
         val rp10 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.CHILD,
-            Individual(id = IndividualId("10"), names = listOf(IndividualName("person10")))
+            Individual(id = IndividualId("10"), names = listOf(IndividualName("person10")), events = listOf(BirthEvent(), DeathEvent(confirmed = false)))
         )
         val rp11 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.CHILD,
-            Individual(id = IndividualId("11"), names = listOf(IndividualName("person11")))
+            Individual(id = IndividualId("11"), names = listOf(IndividualName("person11")), events = listOf(BirthEvent(), DeathEvent(confirmed = false)))
         )
         val rp12 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.CHILD,
-            Individual(id = IndividualId("12"), names = listOf(IndividualName("person12")))
+            Individual(id = IndividualId("12"), names = listOf(IndividualName("person12")), events = listOf(BirthEvent(), DeathEvent(confirmed = false)))
         )
         val rp13 = GradeRelationship.RelationshipPart(
             GradeRelationship.RoleInRelationship.CHILD,
-            Individual(id = IndividualId("13"), names = listOf(IndividualName("person13")))
+            Individual(id = IndividualId("13"), names = listOf(IndividualName("person13")), events = listOf(BirthEvent(), DeathEvent(confirmed = false)))
         )
 
         val list = listOf(
@@ -109,8 +111,8 @@ class GradeRelationshipTest {
                 0 to 0 to MultiLineEntity(
                     listOf(
                         ColoredString("person1"),
-                        ColoredString("Birth: UNRELIABLE", Color.RED),
-                        ColoredString("Death: UNRELIABLE", Color.RED)
+                        ColoredString("Birth: unknown date (UNRELIABLE)", Color.RED),
+                        ColoredString("Death: unknown date (UNRELIABLE)", Color.RED)
                     ),
                     color = Color.RED
                 ),
@@ -119,8 +121,8 @@ class GradeRelationshipTest {
                 0 to 3 to MultiLineEntity(
                     listOf(
                         ColoredString("person2"),
-                        ColoredString("Birth: UNRELIABLE", Color.RED),
-                        ColoredString("Death: UNRELIABLE", Color.RED)
+                        ColoredString("Birth: unknown date (UNRELIABLE)", Color.RED),
+                        ColoredString("Death: unknown date (UNRELIABLE)", Color.RED)
                     ),
                     color = Color.RED
                 ),
@@ -129,8 +131,8 @@ class GradeRelationshipTest {
                 0 to 6 to MultiLineEntity(
                     listOf(
                         ColoredString("person3"),
-                        ColoredString("Birth: UNRELIABLE", Color.RED),
-                        ColoredString("Death: UNRELIABLE", Color.RED)
+                        ColoredString("Birth: unknown date (UNRELIABLE)", Color.RED),
+                        ColoredString("Death: unknown date (UNRELIABLE)", Color.RED)
                     ),
                     color = Color.RED
                 ),
@@ -138,8 +140,8 @@ class GradeRelationshipTest {
                 2 to 6 to MultiLineEntity(
                     listOf(
                         ColoredString("person4"),
-                        ColoredString("Birth: UNRELIABLE", Color.RED),
-                        ColoredString("Death: UNRELIABLE", Color.RED)
+                        ColoredString("Birth: unknown date (UNRELIABLE)", Color.RED),
+                        ColoredString("Death: unknown date (UNRELIABLE)", Color.RED)
                     ),
                     color = Color.RED
                 ),
@@ -148,8 +150,8 @@ class GradeRelationshipTest {
                 2 to 3 to MultiLineEntity(
                     listOf(
                         ColoredString("person5"),
-                        ColoredString("Birth: UNRELIABLE", Color.RED),
-                        ColoredString("Death: UNRELIABLE", Color.RED)
+                        ColoredString("Birth: unknown date (UNRELIABLE)", Color.RED),
+                        ColoredString("Death: unknown date (UNRELIABLE)", Color.RED)
                     ),
                     color = Color.RED
                 ),
@@ -157,8 +159,8 @@ class GradeRelationshipTest {
                 4 to 3 to MultiLineEntity(
                     listOf(
                         ColoredString("person6"),
-                        ColoredString("Birth: UNRELIABLE", Color.RED),
-                        ColoredString("Death: UNRELIABLE", Color.RED)
+                        ColoredString("Birth: unknown date (UNRELIABLE)", Color.RED),
+                        ColoredString("Death: unknown date (UNRELIABLE)", Color.RED)
                     ),
                     color = Color.RED
                 ),
@@ -167,8 +169,8 @@ class GradeRelationshipTest {
                 4 to 6 to MultiLineEntity(
                     listOf(
                         ColoredString("person7"),
-                        ColoredString("Birth: UNRELIABLE", Color.RED),
-                        ColoredString("Death: UNRELIABLE", Color.RED)
+                        ColoredString("Birth: unknown date (UNRELIABLE)", Color.RED),
+                        ColoredString("Death: unknown date (UNRELIABLE)", Color.RED)
                     ),
                     color = Color.RED
                 ),
@@ -177,8 +179,8 @@ class GradeRelationshipTest {
                 4 to 9 to MultiLineEntity(
                     listOf(
                         ColoredString("person8"),
-                        ColoredString("Birth: UNRELIABLE", Color.RED),
-                        ColoredString("Death: UNRELIABLE", Color.RED)
+                        ColoredString("Birth: unknown date (UNRELIABLE)", Color.RED),
+                        ColoredString("Death: unknown date (UNRELIABLE)", Color.RED)
                     ),
                     color = Color.RED
                 ),
@@ -186,8 +188,8 @@ class GradeRelationshipTest {
                 6 to 9 to MultiLineEntity(
                     listOf(
                         ColoredString("person9"),
-                        ColoredString("Birth: UNRELIABLE", Color.RED),
-                        ColoredString("Death: UNRELIABLE", Color.RED)
+                        ColoredString("Birth: unknown date (UNRELIABLE)", Color.RED),
+                        ColoredString("Death: unknown date (UNRELIABLE)", Color.RED)
                     ),
                     color = Color.RED
                 ),
@@ -196,8 +198,8 @@ class GradeRelationshipTest {
                 6 to 6 to MultiLineEntity(
                     listOf(
                         ColoredString("person10"),
-                        ColoredString("Birth: UNRELIABLE", Color.RED),
-                        ColoredString("Death: UNRELIABLE", Color.RED)
+                        ColoredString("Birth: unknown date (UNRELIABLE)", Color.RED),
+                        ColoredString("Death: unknown date (UNRELIABLE)", Color.RED)
                     ),
                     color = Color.RED
                 ),
@@ -206,8 +208,8 @@ class GradeRelationshipTest {
                 6 to 3 to MultiLineEntity(
                     listOf(
                         ColoredString("person11"),
-                        ColoredString("Birth: UNRELIABLE", Color.RED),
-                        ColoredString("Death: UNRELIABLE", Color.RED)
+                        ColoredString("Birth: unknown date (UNRELIABLE)", Color.RED),
+                        ColoredString("Death: unknown date (UNRELIABLE)", Color.RED)
                     ),
                     color = Color.RED
                 ),
@@ -216,8 +218,8 @@ class GradeRelationshipTest {
                 6 to 0 to MultiLineEntity(
                     listOf(
                         ColoredString("person12"),
-                        ColoredString("Birth: UNRELIABLE", Color.RED),
-                        ColoredString("Death: UNRELIABLE", Color.RED)
+                        ColoredString("Birth: unknown date (UNRELIABLE)", Color.RED),
+                        ColoredString("Death: unknown date (UNRELIABLE)", Color.RED)
                     ),
                     color = Color.RED
                 ),
@@ -226,8 +228,8 @@ class GradeRelationshipTest {
                 6 to -3 to MultiLineEntity(
                     listOf(
                         ColoredString("person13"),
-                        ColoredString("Birth: UNRELIABLE", Color.RED),
-                        ColoredString("Death: UNRELIABLE", Color.RED)
+                        ColoredString("Birth: unknown date (UNRELIABLE)", Color.RED),
+                        ColoredString("Death: unknown date (UNRELIABLE)", Color.RED)
                     ),
                     color = Color.RED
                 )

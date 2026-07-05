@@ -1,7 +1,9 @@
 package com.arclights.commands
 
+import com.arclights.BirthEvent
 import com.arclights.CellSurface
 import com.arclights.Color
+import com.arclights.DeathEvent
 import com.arclights.Individual
 import com.arclights.IndividualId
 import com.arclights.IndividualName
@@ -68,7 +70,14 @@ class RelationshipMatrixPaintTest {
     }
 
     private fun part(role: RoleInRelationship, name: String) =
-        RelationshipPart(role, Individual(id = IndividualId(name), names = listOf(IndividualName(name))))
+        RelationshipPart(
+            role,
+            Individual(
+                id = IndividualId(name),
+                names = listOf(IndividualName(name)),
+                events = listOf(BirthEvent(), DeathEvent(confirmed = false))
+            )
+        )
 
     private fun golden(resource: String) =
         javaClass.getResource(resource)!!.readText()
