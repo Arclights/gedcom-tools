@@ -203,40 +203,11 @@ private fun parseIndividual(id: String, lineIterator: LineIterator): Individual 
 }
 
 private fun parseIndividualAttribute(type: String, value: String, lineIterator: LineIterator): GeneralIndividualAttribute {
-    var eventOrFactClassification: String? = null
-    var date: DateValue? = null
-    var place: Place? = null
-    var address: Address? = null
-    val notes = mutableListOf<String>()
-    val sourceCitations = mutableListOf<SourceCitation>()
-    val multimediaLinks = mutableListOf<MultimediaLink>()
+    val detail = EventDetailAccumulator()
 
-    lineIterator.parseByTag(
-        *getEventDetailTagParsers(
-            { eventOrFactClassification = it },
-            { date = it },
-            { place = it },
-            { address = it },
-            notes,
-            sourceCitations,
-            multimediaLinks,
-            lineIterator
-        )
-    )
+    lineIterator.parseByTag(*detail.tagParsers(lineIterator))
 
-    return GeneralIndividualAttribute(
-        type,
-        value,
-        EvenDetail(
-            eventOrFactClassification,
-            date,
-            place,
-            address,
-            notes,
-            sourceCitations,
-            multimediaLinks
-        )
-    )
+    return GeneralIndividualAttribute(type, value, detail.build())
 }
 
 private fun parseAssociation(individualId: String, lineIterator: LineIterator): Association {
@@ -344,155 +315,35 @@ private fun parseSpouseToFamilyLink(familyId: String, lineIterator: LineIterator
 
 private fun parseBirthEvent(lineIterator: LineIterator): BirthEvent {
     var familyId: FamilyGroupId? = null
-    var age: String? = null
-    var eventOrFactClassification: String? = null
-    var date: DateValue? = null
-    var place: Place? = null
-    var address: Address? = null
-    val notes = mutableListOf<String>()
-    val sourceCitations = mutableListOf<SourceCitation>()
-    val multimediaLinks = mutableListOf<MultimediaLink>()
+    val detail = IndividualEventDetailAccumulator()
 
     lineIterator.parseByTag(
         TagParser("FAMC") { familyId = FamilyGroupId(it) },
-        *getIndividualEventDetailTagParsers(
-            { age = it },
-            { eventOrFactClassification = it },
-            { date = it },
-            { place = it },
-            { address = it },
-            notes,
-            sourceCitations,
-            multimediaLinks,
-            lineIterator
-        )
+        *detail.tagParsers(lineIterator)
     )
 
-    return BirthEvent(
-        IndividualEventDetails(
-            EvenDetail(
-                eventOrFactClassification,
-                date,
-                place,
-                address,
-                notes,
-                sourceCitations,
-                multimediaLinks
-            ),
-            age
-        ),
-        familyId
-    )
+    return BirthEvent(detail.build(), familyId)
 }
 
 private fun parseDeathEvent(confirmed: Boolean, lineIterator: LineIterator): DeathEvent {
-    var age: String? = null
-    var eventOrFactClassification: String? = null
-    var date: DateValue? = null
-    var place: Place? = null
-    var address: Address? = null
-    val notes = mutableListOf<String>()
-    val sourceCitations = mutableListOf<SourceCitation>()
-    val multimediaLinks = mutableListOf<MultimediaLink>()
+    val detail = IndividualEventDetailAccumulator()
 
-    lineIterator.parseByTag(
-        *getIndividualEventDetailTagParsers(
-            { age = it },
-            { eventOrFactClassification = it },
-            { date = it },
-            { place = it },
-            { address = it },
-            notes,
-            sourceCitations,
-            multimediaLinks,
-            lineIterator
-        )
-    )
+    lineIterator.parseByTag(*detail.tagParsers(lineIterator))
 
-    return DeathEvent(
-        confirmed,
-        IndividualEventDetails(
-            EvenDetail(
-                eventOrFactClassification,
-                date,
-                place,
-                address,
-                notes,
-                sourceCitations,
-                multimediaLinks
-            ),
-            age
-        )
-    )
+    return DeathEvent(confirmed, detail.build())
 }
 
 private fun parseChristeningEvent(confirmed: Boolean, lineIterator: LineIterator): ChristeningEvent {
     var familyId: FamilyGroupId? = null
-    var age: String? = null
-    var eventOrFactClassification: String? = null
-    var date: DateValue? = null
-    var place: Place? = null
-    var address: Address? = null
-    val notes = mutableListOf<String>()
-    val sourceCitations = mutableListOf<SourceCitation>()
-    val multimediaLinks = mutableListOf<MultimediaLink>()
+    val detail = IndividualEventDetailAccumulator()
 
     lineIterator.parseByTag(
         TagParser("FAMC") { familyId = FamilyGroupId(it) },
-        *getIndividualEventDetailTagParsers(
-            { age = it },
-            { eventOrFactClassification = it },
-            { date = it },
-            { place = it },
-            { address = it },
-            notes,
-            sourceCitations,
-            multimediaLinks,
-            lineIterator
-        )
+        *detail.tagParsers(lineIterator)
     )
 
-    return ChristeningEvent(
-        confirmed,
-        IndividualEventDetails(
-            EvenDetail(
-                eventOrFactClassification,
-                date,
-                place,
-                address,
-                notes,
-                sourceCitations,
-                multimediaLinks
-            ),
-            age
-        ),
-        familyId
-    )
+    return ChristeningEvent(confirmed, detail.build(), familyId)
 }
-
-private fun getIndividualEventDetailTagParsers(
-    assignAge: (String) -> Unit,
-    assignEventOrFactClassification: (String) -> Unit,
-    assignDate: (DateValue) -> Unit,
-    assignPlace: (Place) -> Unit,
-    assignAddress: (Address) -> Unit,
-    notes: MutableList<String>,
-    sourceCitations: MutableList<SourceCitation>,
-    multimediaLinks: MutableList<MultimediaLink>,
-    lineIterator: LineIterator
-) = arrayOf(
-    TagParser("AGE", assignAge),
-    * getEventDetailTagParsers(
-        assignEventOrFactClassification,
-        assignDate,
-        assignPlace,
-        assignAddress,
-        notes,
-        sourceCitations,
-        multimediaLinks,
-        lineIterator
-    )
-)
 
 private fun parseFamilyGroup(id: String, lineIterator: LineIterator): FamilyGroup {
     val events = mutableListOf<FamilyEvent>()
@@ -548,44 +399,17 @@ private fun parseFamilyEvent(lineIterator: LineIterator): FamilyEvent {
 
     var husbandAge: String? = null
     var wifeAge: String? = null
-    var eventOrFactClassification: String? = null
-    var date: DateValue? = null
-    var place: Place? = null
-    var address: Address? = null
-    val notes = mutableListOf<String>()
-    val sourceCitations = mutableListOf<SourceCitation>()
-    val multimediaLinks = mutableListOf<MultimediaLink>()
+    val detail = EventDetailAccumulator()
 
     lineIterator.parseByTag(
         TagParser("HUSB") { husbandAge = parseFamilyEventPersonAge(lineIterator) },
         TagParser("WIFE") { wifeAge = parseFamilyEventPersonAge(lineIterator) },
-        *getEventDetailTagParsers(
-            { eventOrFactClassification = it },
-            { date = it },
-            { place = it },
-            { address = it },
-            notes,
-            sourceCitations,
-            multimediaLinks,
-            lineIterator
-        )
+        *detail.tagParsers(lineIterator)
     )
 
     return FamilyEvent(
         eventType,
-        FamilyEventDetail(
-            husbandAge,
-            wifeAge,
-            EvenDetail(
-                eventOrFactClassification,
-                date,
-                place,
-                address,
-                notes,
-                sourceCitations,
-                multimediaLinks
-            )
-        )
+        FamilyEventDetail(husbandAge, wifeAge, detail.build())
     )
 }
 
@@ -599,24 +423,43 @@ private fun parseFamilyEventPersonAge(lineIterator: LineIterator): String? {
     return age
 }
 
-private fun getEventDetailTagParsers(
-    assignEventOrFactClassification: (String) -> Unit,
-    assignDate: (DateValue) -> Unit,
-    assignPlace: (Place) -> Unit,
-    assignAddress: (Address) -> Unit,
-    notes: MutableList<String>,
-    sourceCitations: MutableList<SourceCitation>,
-    multimediaLinks: MutableList<MultimediaLink>,
-    lineIterator: LineIterator
-) = arrayOf(
-    TagParser("TYPE", assignEventOrFactClassification),
-    dateParser(assignDate),
-    TagParser("PLAC") { name -> parsePlace(name, lineIterator).let(assignPlace) },
-    TagParser("ADDR") { parseAddress(lineIterator).let(assignAddress) },
-    noteParser(notes),
-    sourceCitationParser(sourceCitations, lineIterator),
-    multimediaLinkParser(multimediaLinks)
-)
+// The EVENT_DETAIL substructure (TYPE, DATE, PLAC, ADDR, NOTE, SOUR, OBJE) is shared
+// by every event and attribute. This accumulator collects those fields as its tag
+// parsers fire and builds the EvenDetail, so each caller only adds its own extra tags.
+private class EventDetailAccumulator {
+    var type: String? = null
+    var date: DateValue? = null
+    var place: Place? = null
+    var address: Address? = null
+    val notes = mutableListOf<String>()
+    val sourceCitations = mutableListOf<SourceCitation>()
+    val multimediaLinks = mutableListOf<MultimediaLink>()
+
+    fun tagParsers(lineIterator: LineIterator) = arrayOf(
+        TagParser("TYPE") { type = it },
+        dateParser { date = it },
+        TagParser("PLAC") { name -> place = parsePlace(name, lineIterator) },
+        TagParser("ADDR") { address = parseAddress(lineIterator) },
+        noteParser(notes),
+        sourceCitationParser(sourceCitations, lineIterator),
+        multimediaLinkParser(multimediaLinks)
+    )
+
+    fun build() = EvenDetail(type, date, place, address, notes, sourceCitations, multimediaLinks)
+}
+
+// INDIVIDUAL_EVENT_DETAIL wraps EVENT_DETAIL with an AGE at the time of the event.
+private class IndividualEventDetailAccumulator {
+    var age: String? = null
+    private val detail = EventDetailAccumulator()
+
+    fun tagParsers(lineIterator: LineIterator) = arrayOf(
+        TagParser("AGE") { age = it },
+        *detail.tagParsers(lineIterator)
+    )
+
+    fun build() = IndividualEventDetails(detail.build(), age)
+}
 
 private fun parsePlace(name: String, lineIterator: LineIterator): Place {
     var latitude: Double? = null
