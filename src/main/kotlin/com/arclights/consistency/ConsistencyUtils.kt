@@ -23,6 +23,7 @@ import com.arclights.Individual
 import com.arclights.IndividualEvent
 import com.arclights.IndividualId
 import com.arclights.IndividualName
+import com.arclights.JulianCalendar
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -57,6 +58,13 @@ private fun DateCalendar.toLocalDateOrNull(): LocalDate? = when (this) {
         }.getOrNull()
     }
 
+    is JulianCalendar -> {
+        val yearNumber = year?.let { if (beforeCommonEra) -it else it } ?: return null
+        runCatching {
+            LocalDate.of(yearNumber, (month?.ordinal ?: 0) + 1, day ?: 1)
+        }.getOrNull()
+    }
+
     else -> null
 }
 
@@ -73,7 +81,7 @@ fun IndividualEvent.dateValue(): DateValue? = when (this) {
     is BirthEvent -> details?.details?.date
     is ChristeningEvent -> details?.details?.date
     is DeathEvent -> details?.details?.date
-    is GeneralIndividualEvent -> details.details.date
+    is GeneralIndividualEvent -> details?.details?.date
     else -> null
 }
 

@@ -14,32 +14,42 @@ class GedcomReader {
     }
 }
 
-fun decodeGedcomBytes(bytes: ByteArray): List<String> =
-    String(bytes, detectGedcomCharset(bytes)).lines()
+fun decodeGedcomBytes(bytes: ByteArray): List<String> {
+    // ANSEL is GEDCOM's own default character set and has no equivalent JVM Charset, so it
+    // needs a dedicated decoder rather than the Charset path below.
+    if (!hasUtf16Bom(bytes) && declaredEncoding(bytes)?.uppercase() == "ANSEL") {
+        return decodeAnsel(bytes).lines()
+    }
+    return String(bytes, detectGedcomCharset(bytes)).lines()
+}
 
-fun detectGedcomCharset(bytes: ByteArray): Charset {
-    // A UTF-16 byte-order mark has to be detected before the ISO-8859-1 scan below:
-    // in a UTF-16 file every other byte is a null, so "1 CHAR UNICODE" never matches
-    // as a plain string and the declared encoding would be missed. The UTF_16 charset
-    // uses the BOM to pick the byte order.
-    if (bytes.size >= 2 &&
+private fun hasUtf16Bom(bytes: ByteArray): Boolean =
+    bytes.size >= 2 &&
         ((bytes[0] == 0xFE.toByte() && bytes[1] == 0xFF.toByte()) ||
             (bytes[0] == 0xFF.toByte() && bytes[1] == 0xFE.toByte()))
-    ) {
-        return Charsets.UTF_16
-    }
 
-    // GEDCOM's own encoding is declared inside the file, so this first pass has to
-    // use a charset that can decode any byte sequence without throwing. ISO-8859-1
-    // maps every byte to a character 1:1, and the CHAR tag's value is always plain
-    // ASCII, so this is safe regardless of the file's real encoding.
-    val declared = String(bytes, Charsets.ISO_8859_1)
+// GEDCOM's own encoding is declared inside the file, so this first pass has to use a charset
+// that can decode any byte sequence without throwing. ISO-8859-1 maps every byte to a
+// character 1:1, and the CHAR tag's value is always plain ASCII, so this is safe regardless
+// of the file's real encoding.
+private fun declaredEncoding(bytes: ByteArray): String? =
+    String(bytes, Charsets.ISO_8859_1)
         .lineSequence()
         .map { it.trim() }
         .firstOrNull { it == "1 CHAR" || it.startsWith("1 CHAR ") }
         ?.removePrefix("1 CHAR")
         ?.trim()
 
+fun detectGedcomCharset(bytes: ByteArray): Charset {
+    // A UTF-16 byte-order mark has to be detected before the declared-encoding scan below:
+    // in a UTF-16 file every other byte is a null, so "1 CHAR UNICODE" never matches as a
+    // plain string and the declared encoding would be missed. The UTF_16 charset uses the
+    // BOM to pick the byte order.
+    if (hasUtf16Bom(bytes)) {
+        return Charsets.UTF_16
+    }
+
+    val declared = declaredEncoding(bytes)
     return when (declared?.uppercase()) {
         null, "" -> Charsets.UTF_8
         "UTF-8", "UTF8" -> Charsets.UTF_8

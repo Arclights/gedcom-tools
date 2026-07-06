@@ -322,6 +322,143 @@ class GedcomParserKtTest {
         assertThat(logs).anyMatch { it.level == Level.WARN && it.formattedMessage.contains("@I1@") }
     }
 
+    @Test
+    fun parsesMarriageSettlementFamilyEventWithoutCrashing() {
+        // Given
+        // MARS previously had a registered parser but no matching FamilyEventType, throwing.
+        val input = """
+            0 HEAD
+            0 @F1@ FAM
+            1 MARS
+            2 DATE 3 MAR 1900
+        """.trimIndent().lines()
+
+        // When
+        val actual = parseGedcom(input)
+
+        // Then
+        val event = actual.familyGroups.getValue(FamilyGroupId("@F1@")).events.single()
+        assertThat(event.eventType).isEqualTo(FamilyEventType.MARR_SETTLEMENT)
+    }
+
+    @Test
+    fun parsesFormerlyUnhandledIndividualEvents() {
+        // Given
+        val input = """
+            0 HEAD
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            1 BURI
+            2 DATE 5 MAY 1980
+            2 PLAC Springfield
+            1 EMIG
+            2 DATE 1850
+        """.trimIndent().lines()
+
+        // When
+        val actual = parseGedcom(input)
+
+        // Then
+        val events = actual.individuals.getValue(IndividualId("@I1@")).events
+        assertThat(events.filterIsInstance<GeneralIndividualEvent>().map { it.type })
+            .containsExactlyInAnyOrder("BURI", "EMIG")
+    }
+
+    @Test
+    fun parsesTheHeaderRecord() {
+        // Given
+        val input = """
+            0 HEAD
+            1 SOUR MYHERITAGE
+            2 NAME MyHeritage Family Tree Builder
+            2 VERS 5.5.1
+            2 CORP MyHeritage.com
+            1 DEST MYHERITAGE
+            1 DATE 31 DEC 2022
+            2 TIME 12:34:56
+            1 SUBM @U1@
+            1 FILE export.ged
+            1 GEDC
+            2 VERS 5.5.1
+            2 FORM LINEAGE-LINKED
+            1 CHAR UTF-8
+            1 LANG Swedish
+            0 TRLR
+        """.trimIndent().lines()
+
+        // When
+        val header = parseGedcom(input).header
+
+        // Then
+        assertThat(header).isNotNull
+        assertThat(header?.source).isEqualTo(
+            Header.Source("MYHERITAGE", "5.5.1", "MyHeritage Family Tree Builder", "MyHeritage.com")
+        )
+        assertThat(header?.destination).isEqualTo("MYHERITAGE")
+        assertThat(header?.date).isEqualTo(java.time.LocalDate.of(2022, 12, 31))
+        assertThat(header?.time).isEqualTo("12:34:56")
+        assertThat(header?.submitterId).isEqualTo("@U1@")
+        assertThat(header?.fileName).isEqualTo("export.ged")
+        assertThat(header?.gedcomVersion).isEqualTo("5.5.1")
+        assertThat(header?.gedcomForm).isEqualTo("LINEAGE-LINKED")
+        assertThat(header?.characterSet).isEqualTo("UTF-8")
+        assertThat(header?.language).isEqualTo("Swedish")
+    }
+
+    @Test
+    fun parsesAnInlineSourceCitation() {
+        // Given
+        // The SOUR value is descriptive text rather than an @xref@ pointer.
+        val input = """
+            0 HEAD
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            1 SOUR Family bible in the author's possession
+            2 QUAY 2
+        """.trimIndent().lines()
+
+        // When
+        val actual = parseGedcom(input)
+
+        // Then
+        val citation = actual.individuals.getValue(IndividualId("@I1@")).sourceCitations.single()
+        assertThat(citation.source).isNull()
+        assertThat(citation.description).isEqualTo("Family bible in the author's possession")
+        assertThat(citation.qualityAssessment).isEqualTo(QUAY.SECONDARY)
+    }
+
+    @Test
+    fun unescapesDoubledAtSignInValues() {
+        // Given
+        // GEDCOM escapes a literal "@" as "@@"; the parsed value must collapse it back.
+        val input = """
+            0 HEAD
+            0 @I1@ INDI
+            1 NAME John /Doe/
+            1 RESI
+            2 EMAIL john.doe@@example.com
+        """.trimIndent().lines()
+
+        // When
+        val actual = parseGedcom(input)
+
+        // Then
+        val email = actual.individuals.getValue(IndividualId("@I1@"))
+            .attributes.filterIsInstance<GeneralIndividualAttribute>().single()
+            .detail.address?.emails?.single()
+        assertThat(email).isEqualTo("john.doe@example.com")
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    fun canParseNonGregorianAndInterpretedDates(dateString: String, expected: DateValue) {
+        // When
+        val actual = parseDateValue(dateString)
+
+        // Then
+        assertThat(actual).isEqualTo(expected)
+    }
+
     @ParameterizedTest
     @MethodSource
     fun canParseApproximateRangeAndPeriodDates(dateString: String, expected: DateValue) {
@@ -368,9 +505,11 @@ class GedcomParserKtTest {
                     2 NOTE Make/Maka: Johan Sandström
                 """,
                 Gedcom(
+                    header = Header(),
                     familyGroups = mapOf(
                         FamilyGroupId("@F500590@") to FamilyGroup(
                             id = FamilyGroupId("@F500590@"),
+                            automatedRecordId = "MH:F500590",
                             husbandId = IndividualId("@I501515@"),
                             wifeId = IndividualId("@I502070@"),
                             childrenIds = listOf(
@@ -420,9 +559,11 @@ class GedcomParserKtTest {
                     1 MARR
                 """.trimIndent(),
                 Gedcom(
+                    header = Header(),
                     familyGroups = mapOf(
                         FamilyGroupId("@F500597@") to FamilyGroup(
                             id = FamilyGroupId("@F500597@"),
+                            automatedRecordId = "MH:F500597",
                             husbandId = IndividualId("@I502105@"),
                             wifeId = IndividualId("@I502103@"),
                             childrenIds = listOf(
@@ -438,6 +579,32 @@ class GedcomParserKtTest {
                             )
                         )
                     )
+                )
+            )
+        )
+
+        @JvmStatic
+        fun canParseNonGregorianAndInterpretedDates(): Stream<Arguments> = Stream.of(
+            Arguments.of(
+                "@#DJULIAN@ 14 APR 1750",
+                Date(Calendars.JULIAN, JulianCalendar(day = 14, month = GregorianCalendar.Month.APR, year = 1750))
+            ),
+            Arguments.of(
+                "@#DHEBREW@ 2 TSH 5765",
+                Date(Calendars.HEBREW, HebrewCalendar(day = 2, month = HebrewCalendar.Month.TSH, year = 5765))
+            ),
+            Arguments.of(
+                "@#DFRENCH R@ 3 VEND 12",
+                Date(Calendars.FRENCH, FrenchCalendar(day = 3, month = FrenchCalendar.Month.VEND, year = 12))
+            ),
+            Arguments.of(
+                "INT 1 JAN 1900 (New Year's Day)",
+                DatePhraseExt(
+                    Date(
+                        Calendars.GREGORIAN,
+                        GregorianCalendar(day = 1, month = GregorianCalendar.Month.JAN, year = Year(1900, 1900))
+                    ),
+                    "New Year's Day"
                 )
             )
         )
