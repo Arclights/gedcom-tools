@@ -153,7 +153,10 @@ data class ColoredString(private val string: String, private val color: Color? =
 enum class Color(val code: Int) {
     RED(124),
     YELLOW(220),
-    GREEN(34);
+    GREEN(34),
+    CYAN(45),
+    BLUE(39),
+    GREY(245);
 
     fun escapeCode() = "$escape[38:5:${code}m"
 

@@ -17,6 +17,10 @@ import com.googlecode.lanterna.gui2.LinearLayout
 import com.googlecode.lanterna.gui2.MultiWindowTextGUI
 import com.googlecode.lanterna.gui2.Panel
 import com.googlecode.lanterna.gui2.Window
+import com.googlecode.lanterna.gui2.WindowListenerAdapter
+import com.googlecode.lanterna.input.KeyStroke
+import com.googlecode.lanterna.input.KeyType
+import java.util.concurrent.atomic.AtomicBoolean
 import com.googlecode.lanterna.gui2.dialogs.MessageDialog
 import com.googlecode.lanterna.gui2.dialogs.MessageDialogButton
 import com.googlecode.lanterna.gui2.dialogs.ListSelectDialogBuilder
@@ -88,6 +92,24 @@ class Tui : AutoCloseable {
         window.component = Panel(LinearLayout(Direction.VERTICAL)).apply {
             addComponent(view)
             addComponent(Label("(arrows/PgUp/PgDn to scroll, Tab to reach Close, Esc to close)"))
+            addComponent(Button("Close") { window.close() })
+        }
+        gui.addWindowAndWait(window)
+    }
+
+    /** Shows a person [card] rendered with native TUI components in a dismissable window. */
+    fun showPersonInfo(card: com.arclights.commands.PersonCard) {
+        val window = BasicWindow("Person info")
+        window.setHints(listOf(Window.Hint.CENTERED))
+        window.addWindowListener(object : WindowListenerAdapter() {
+            override fun onUnhandledInput(basePane: Window, keyStroke: KeyStroke, hasBeenHandled: AtomicBoolean) {
+                if (keyStroke.keyType == KeyType.Escape) window.close()
+            }
+        })
+
+        window.component = Panel(LinearLayout(Direction.VERTICAL)).apply {
+            addComponent(personInfoComponent(card))
+            addComponent(EmptySpace())
             addComponent(Button("Close") { window.close() })
         }
         gui.addWindowAndWait(window)

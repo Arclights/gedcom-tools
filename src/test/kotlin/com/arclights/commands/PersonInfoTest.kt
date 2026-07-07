@@ -1,9 +1,11 @@
 package com.arclights.commands
 
+import com.arclights.Association
 import com.arclights.BirthEvent
 import com.arclights.Calendars
 import com.arclights.ChildToFamilyLink
 import com.arclights.Date
+import com.arclights.DeathEvent
 import com.arclights.EventDetail
 import com.arclights.FamilyGroup
 import com.arclights.FamilyGroupId
@@ -15,6 +17,9 @@ import com.arclights.IndividualId
 import com.arclights.IndividualName
 import com.arclights.Place
 import com.arclights.Sex
+import com.arclights.Source
+import com.arclights.SourceCitation
+import com.arclights.SourceId
 import com.arclights.SpouseToFamilyLink
 import com.arclights.Year
 import com.arclights.findPeopleByName
@@ -73,19 +78,13 @@ class PersonInfoTest {
         )
 
         // When
-        val output = personInfoText(gedcom, person)
+        val lines = personInfoText(gedcom, person).normalizedLines()
 
         // Then
-        assertThat(output.lines()).containsSequence(
-            "Names:",
-            "  John /Doe/",
-            "Sex: MALE",
-            "Birth: 5 AUG 1947 in Vallkärra (M)",
-            "Notes:",
-            "  A note",
-            "Child of Richard /Doe/ and Mary /Doe/",
-            "Spouse of Jane /Doe/"
-        )
+        assertThat(lines).contains("John Doe", "♂ Male · b. 1947")
+        assertThat(lines).containsSequence("Events", "Birth 5 AUG 1947 · Vallkärra (M)")
+        assertThat(lines).containsSequence("Family", "Parents Richard Doe & Mary Doe", "Spouse Jane Doe")
+        assertThat(lines).containsSequence("Notes", "• A note")
     }
 
     @Test
@@ -100,13 +99,57 @@ class PersonInfoTest {
         val gedcom = Gedcom(individuals = mapOf(person.id to person))
 
         // When
-        val output = personInfoText(gedcom, person)
+        val lines = personInfoText(gedcom, person).normalizedLines()
 
         // Then
-        assertThat(output.lines()).containsSequence(
-            "Child in family: @F1@",
-            "Spouse in family: @F2@"
+        assertThat(lines).containsSequence(
+            "Parents unknown (family @F1@)",
+            "Spouse unknown (family @F2@)"
         )
+    }
+
+    @Test
+    fun rendersNicknameCauseAgeAssociationsSourcesAndIdentifiers() {
+        // Given
+        val godfather = Individual(id = IndividualId("@I9@"), names = listOf(IndividualName("Karl /Berg/")))
+        val person = Individual(
+            id = IndividualId("@I1@"),
+            names = listOf(IndividualName("John /Doe/", nickname = "Johnny")),
+            sex = Sex.MALE,
+            events = listOf(
+                DeathEvent(
+                    confirmed = true,
+                    details = IndividualEventDetails(
+                        details = EventDetail(
+                            date = Date(
+                                Calendars.GREGORIAN,
+                                GregorianCalendar(day = 3, month = GregorianCalendar.Month.JAN, year = Year(1998, 1998))
+                            ),
+                            place = Place(name = "Lund"),
+                            cause = "Pneumonia"
+                        ),
+                        age = "50y"
+                    )
+                )
+            ),
+            associations = listOf(Association(individualId = godfather.id, relation = "Godfather")),
+            references = listOf("REF-42"),
+            sourceCitations = listOf(SourceCitation(source = SourceId("@S1@"), page = "17"))
+        )
+        val gedcom = Gedcom(
+            individuals = listOf(person, godfather).associateBy { it.id },
+            sources = mapOf(SourceId("@S1@") to Source(id = SourceId("@S1@"), title = "Parish register"))
+        )
+
+        // When
+        val lines = personInfoText(gedcom, person).normalizedLines()
+
+        // Then
+        assertThat(lines).contains("John Doe \"Johnny\"")
+        assertThat(lines).containsSequence("Events", "Death 3 JAN 1998 · Lund · Pneumonia · aged 50y")
+        assertThat(lines).containsSequence("Associations", "Godfather Karl Berg")
+        assertThat(lines).containsSequence("Sources", "• Parish register, p. 17")
+        assertThat(lines).containsSequence("Identifiers", "ID @I1@", "Reference REF-42")
     }
 
     @Test
@@ -126,4 +169,10 @@ class PersonInfoTest {
         assertThat(gedcom.findPeopleByName("JOHN"))
             .containsExactlyInAnyOrder(person1, person2)
     }
+
+    /** Strips color escapes and collapses indentation/padding so assertions ignore exact spacing. */
+    private fun String.normalizedLines(): List<String> =
+        replace(Regex("\\[[0-9;:]*m"), "")
+            .lines()
+            .map { it.trim().replace(Regex(" +"), " ") }
 }
